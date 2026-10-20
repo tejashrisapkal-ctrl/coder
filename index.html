@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>L&D Activity Tracker | Learning & Development</title>
+  <meta name="description" content="Automated Learning & Development tracker for managing trainings, certifications, initiatives, and Google learnings." />
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+
+<!-- ══════════ SIDEBAR ══════════ -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-icon">🎓</div>
+    <div class="logo-title">L&D Tracker</div>
+    <div class="logo-subtitle">Learning &amp; Development</div>
+  </div>
+
+  <nav class="sidebar-nav">
+    <div class="nav-section-label">Overview</div>
+    <div class="nav-item active" data-page="dashboard" onclick="navigate('dashboard')">
+      <span class="nav-icon">📊</span> Dashboard
+    </div>
+
+    <div class="nav-section-label">Management</div>
+    <div class="nav-item" data-page="activities" onclick="navigate('activities')">
+      <span class="nav-icon">📋</span> Activities
+      <span class="nav-badge" id="nav-badge-activities">0</span>
+    </div>
+    <div class="nav-item" data-page="initiatives" onclick="navigate('initiatives')">
+      <span class="nav-icon">🎯</span> Initiatives
+      <span class="nav-badge" id="nav-badge-initiatives">18</span>
+    </div>
+    <div class="nav-item" data-page="gantt" onclick="navigate('gantt')">
+      <span class="nav-icon">🗓️</span> Timeline
+    </div>
+
+    <div class="nav-section-label">Quick Filters</div>
+    <div class="nav-item" onclick="quickFilter('status','Completed')">
+      <span class="nav-icon">✅</span> Completed
+      <span class="nav-badge" id="qf-completed" style="background:#00C896">0</span>
+    </div>
+    <div class="nav-item" onclick="quickFilter('status','In Progress')">
+      <span class="nav-icon">🔄</span> In Progress
+      <span class="nav-badge" id="qf-inprogress" style="background:#6C63FF">0</span>
+    </div>
+    <div class="nav-item" onclick="quickFilter('status','On Going')">
+      <span class="nav-icon">🔵</span> On Going
+      <span class="nav-badge" id="qf-ongoing" style="background:#FFB347">0</span>
+    </div>
+  </nav>
+
+  <div class="sidebar-footer">
+    <div class="date-display" id="sidebar-date"></div>
+    <div>L&amp;D Team Tracker v1.0</div>
+  </div>
+</aside>
+
+<!-- ══════════ MAIN ══════════ -->
+<main class="main">
+
+  <!-- Top Bar -->
+  <header class="topbar">
+    <div>
+      <div class="topbar-title" id="topbar-title">Dashboard</div>
+      <div class="topbar-subtitle" id="topbar-subtitle">Overview of all L&D activities and initiatives</div>
+    </div>
+    <div class="topbar-actions">
+      <div class="search-box">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="global-search" placeholder="Search activities…" oninput="onSearch(this.value)" />
+      </div>
+      <button class="btn btn-secondary" onclick="exportCSV()">⬇️ Export CSV</button>
+      <button class="btn btn-sheets" onclick="openInGoogleSheets()" title="Export data and open in Google Sheets">
+        <img src="https://www.gstatic.com/images/branding/product/1x/sheets_2020q4_32dp.png" alt="" style="width:16px;height:16px;vertical-align:middle" />
+        Open in Sheets
+      </button>
+      <button class="btn btn-primary" onclick="openModal()">＋ Add Activity</button>
+    </div>
+  </header>
+
+  <!-- ══ PAGE: DASHBOARD ══ -->
+  <section class="page active" id="page-dashboard">
+    <div class="stats-grid" id="stats-grid"></div>
+
+    <div class="charts-grid">
+      <div class="chart-card">
+        <div class="chart-card-title">📈 Status Distribution</div>
+        <canvas id="chart-status"></canvas>
+      </div>
+      <div class="chart-card">
+        <div class="chart-card-title">👤 Activities by Owner</div>
+        <canvas id="chart-owner"></canvas>
+      </div>
+    </div>
+
+    <div class="chart-card" style="margin-bottom:28px">
+      <div class="chart-card-title">🎯 Activities by Type</div>
+      <canvas id="chart-type" style="max-height:160px"></canvas>
+    </div>
+
+    <div class="section-header">
+      <div class="section-title">🕐 Recent Activities</div>
+    </div>
+    <div class="recent-list" id="recent-list"></div>
+  </section>
+
+  <!-- ══ PAGE: ACTIVITIES ══ -->
+  <section class="page" id="page-activities">
+    <div class="filters-bar">
+      <div class="filter-group">
+        <span class="filter-label">Status</span>
+        <select id="filter-status" onchange="applyFilters()">
+          <option value="">All</option>
+          <option>On Going</option>
+          <option>In Progress</option>
+          <option>Completed</option>
+          <option>Not Started</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <span class="filter-label">Owner</span>
+        <select id="filter-owner" onchange="applyFilters()">
+          <option value="">All</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <span class="filter-label">Type</span>
+        <select id="filter-type" onchange="applyFilters()">
+          <option value="">All</option>
+          <option>Monthly</option>
+          <option>Till Dec 2026</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <span class="filter-label">Initiative</span>
+        <select id="filter-initiative" onchange="applyFilters()">
+          <option value="">All</option>
+        </select>
+      </div>
+      <button class="btn btn-secondary btn-sm" onclick="clearFilters()">✕ Clear</button>
+    </div>
+
+    <div class="table-wrapper">
+      <div class="table-scroll">
+        <table id="activity-table">
+          <thead>
+            <tr>
+              <th onclick="sortTable('id')">#</th>
+              <th onclick="sortTable('name')">Activity Name</th>
+              <th onclick="sortTable('owner')">Owner</th>
+              <th onclick="sortTable('initiative')">Initiative</th>
+              <th onclick="sortTable('startDate')">Start Date</th>
+              <th onclick="sortTable('endDate')">End Date</th>
+              <th onclick="sortTable('status')">Status</th>
+              <th onclick="sortTable('type')">Type</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="activity-tbody"></tbody>
+        </table>
+      </div>
+      <div class="table-footer">
+        <span id="table-count">0 activities</span>
+        <span id="table-last-updated"></span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ PAGE: INITIATIVES ══ -->
+  <section class="page" id="page-initiatives">
+    <div class="section-header">
+      <div class="section-title">🎯 Core L&D Initiatives</div>
+      <div class="section-actions">
+        <select id="filter-init-category" onchange="renderInitiatives()">
+          <option value="">All Categories</option>
+          <option>I&D Team</option>
+          <option>Tool & Platform</option>
+          <option>Org Competency</option>
+          <option>AI Adoption</option>
+          <option>Compliance</option>
+          <option>Other</option>
+        </select>
+      </div>
+    </div>
+    <div class="initiatives-grid" id="initiatives-grid"></div>
+  </section>
+
+  <!-- ══ PAGE: GANTT ══ -->
+  <section class="page" id="page-gantt">
+    <div class="section-header">
+      <div class="section-title">🗓️ Activity Timeline (Apr – Dec 2026)</div>
+      <div class="section-actions">
+        <select id="gantt-filter-owner" onchange="renderGantt()">
+          <option value="">All Owners</option>
+        </select>
+      </div>
+    </div>
+    <div class="gantt-wrapper">
+      <div class="gantt-header">
+        <div class="gantt-row" style="min-height:36px">
+          <div class="gantt-label" style="font-size:11px;font-weight:700;color:var(--text-muted)">ACTIVITY</div>
+          <div style="display:flex;border-left:1px solid var(--border)">
+            <div id="gantt-month-headers" style="display:flex;flex:1"></div>
+          </div>
+        </div>
+      </div>
+      <div class="gantt-body" id="gantt-body"></div>
+    </div>
+  </section>
+
+</main><!-- /main -->
+
+<!-- ══════════ ADD / EDIT MODAL ══════════ -->
+<div class="modal-overlay" id="modal-overlay" onclick="onOverlayClick(event)">
+  <div class="modal">
+    <div class="modal-title" id="modal-title">➕ Add Activity</div>
+    <form id="activity-form" onsubmit="saveActivity(event)">
+      <div class="form-grid">
+        <div class="form-group full">
+          <label class="form-label">Activity Name *</label>
+          <input type="text" id="f-name" required placeholder="e.g. AI Fluency Training" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Owner *</label>
+          <select id="f-owner" required>
+            <option value="">Select owner</option>
+            <option>Tanaya</option>
+            <option>Nikhil</option>
+            <option>Deepraj</option>
+            <option>Tanaya/Deepraj</option>
+            <option>Tanaya/Nikhil</option>
+            <option>Team</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Status *</label>
+          <select id="f-status" required>
+            <option value="">Select status</option>
+            <option>Not Started</option>
+            <option>On Going</option>
+            <option>In Progress</option>
+            <option>Completed</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Start Date</label>
+          <input type="date" id="f-start" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">End Date</label>
+          <input type="date" id="f-end" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Type of Project</label>
+          <select id="f-type">
+            <option value="">— None —</option>
+            <option>Monthly</option>
+            <option>Till Dec 2026</option>
+            <option>One-time</option>
+            <option>Quarterly</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Initiative</label>
+          <select id="f-initiative">
+            <option value="">— None —</option>
+          </select>
+        </div>
+        <div class="form-group full">
+          <label class="form-label">Notes</label>
+          <textarea id="f-notes" placeholder="Any additional notes or context…"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="modal-save-btn">Save Activity</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Google Sheets Modal -->
+<div class="modal-overlay" id="sheets-modal-overlay" onclick="onSheetsOverlayClick(event)">
+  <div class="modal" style="max-width:600px">
+    <div class="modal-title" style="color:#0F9D58">
+      <img src="https://www.gstatic.com/images/branding/product/1x/sheets_2020q4_32dp.png" alt="" style="width:28px;height:28px" />
+      Open in Google Sheets
+    </div>
+    <p style="color:var(--text-secondary);font-size:13px;margin-bottom:20px">
+      Your CSV file has been downloaded. Follow these steps to import it into Google Sheets:
+    </p>
+    <ol class="sheets-steps">
+      <li class="sheets-step">
+        <div class="step-num">1</div>
+        <div class="step-content">
+          <div class="step-title">Open Google Sheets</div>
+          <div class="step-desc">Click the button below to open Google Sheets in a new tab. Sign in with your Google account if prompted.</div>
+        </div>
+      </li>
+      <li class="sheets-step">
+        <div class="step-num">2</div>
+        <div class="step-content">
+          <div class="step-title">Create a New Spreadsheet</div>
+          <div class="step-desc">Click <strong>Blank spreadsheet</strong> or open your existing L&D tracker sheet.</div>
+        </div>
+      </li>
+      <li class="sheets-step">
+        <div class="step-num">3</div>
+        <div class="step-content">
+          <div class="step-title">Import the CSV File</div>
+          <div class="step-desc">Go to <strong>File → Import → Upload</strong> and select the downloaded CSV file (named <code style="background:var(--bg-input);padding:1px 6px;border-radius:4px">LD_Tracker_YYYY-MM-DD.csv</code> from your Downloads folder).</div>
+        </div>
+      </li>
+      <li class="sheets-step">
+        <div class="step-num">4</div>
+        <div class="step-content">
+          <div class="step-title">Choose Import Settings</div>
+          <div class="step-desc">Select <strong>"Replace spreadsheet"</strong> or <strong>"Insert new sheet"</strong>, then click <strong>Import data</strong>. Your tracker data will appear instantly!</div>
+        </div>
+      </li>
+    </ol>
+    <div class="hint-box">
+      💡 <strong>Pro tip:</strong> To keep Google Sheets always in sync, click <strong>"Export CSV"</strong> from this tracker whenever you make changes, then re-import into Sheets. Or ask your IT team to set up a Google Apps Script for automatic sync!
+    </div>
+    <div class="sheets-actions">
+      <a href="https://sheets.new" target="_blank" class="sheets-link">
+        <img src="https://www.gstatic.com/images/branding/product/1x/sheets_2020q4_32dp.png" alt="" style="width:18px;height:18px" />
+        Open Google Sheets →
+      </a>
+      <button class="btn btn-secondary" onclick="closeSheetsModal()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast Container -->
+<div class="toast-container" id="toast-container"></div>
+
+<script src="app.js"></script>
+</body>
+</html>
