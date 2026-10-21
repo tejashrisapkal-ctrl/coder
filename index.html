@@ -18,8 +18,8 @@
       <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" width="48" height="48">
         <defs>
           <linearGradient id="logoGrad" x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse">
-            <stop offset="0%" stop-color="#6C63FF"/>
-            <stop offset="100%" stop-color="#00D4AA"/>
+            <stop offset="0%" stop-color="#30496d"/>
+            <stop offset="100%" stop-color="#f46262"/>
           </linearGradient>
         </defs>
         <rect width="48" height="48" rx="13" fill="url(#logoGrad)"/>
@@ -28,19 +28,19 @@
         <!-- Open Book right page -->
         <path d="M24 36 L38 31 L38 13 L24 18 Z" fill="white" opacity="0.75"/>
         <!-- Book spine -->
-        <line x1="24" y1="18" x2="24" y2="36" stroke="rgba(108,99,255,0.5)" stroke-width="1.5"/>
+        <line x1="24" y1="18" x2="24" y2="36" stroke="rgba(48,73,109,0.5)" stroke-width="1.5"/>
         <!-- Left page lines -->
-        <line x1="12" y1="20" x2="22" y2="17" stroke="rgba(108,99,255,0.35)" stroke-width="1"/>
-        <line x1="12" y1="24" x2="22" y2="21" stroke="rgba(108,99,255,0.35)" stroke-width="1"/>
-        <line x1="12" y1="28" x2="22" y2="25" stroke="rgba(108,99,255,0.35)" stroke-width="1"/>
+        <line x1="12" y1="20" x2="22" y2="17" stroke="rgba(48,73,109,0.35)" stroke-width="1"/>
+        <line x1="12" y1="24" x2="22" y2="21" stroke="rgba(48,73,109,0.35)" stroke-width="1"/>
+        <line x1="12" y1="28" x2="22" y2="25" stroke="rgba(48,73,109,0.35)" stroke-width="1"/>
         <!-- AI Circuit dots (right page) -->
-        <circle cx="29" cy="20" r="1.8" fill="#00D4AA"/>
+        <circle cx="29" cy="20" r="1.8" fill="#f46262"/>
         <circle cx="34" cy="23" r="1.8" fill="#FFB347"/>
-        <circle cx="30" cy="27" r="1.8" fill="#6C63FF" opacity="0.9"/>
+        <circle cx="30" cy="27" r="1.8" fill="#30496d" opacity="0.9"/>
         <!-- Circuit connections -->
-        <line x1="29" y1="20" x2="34" y2="23" stroke="#00D4AA" stroke-width="1.2" opacity="0.8"/>
+        <line x1="29" y1="20" x2="34" y2="23" stroke="#f46262" stroke-width="1.2" opacity="0.8"/>
         <line x1="34" y1="23" x2="30" y2="27" stroke="#FFB347" stroke-width="1.2" opacity="0.8"/>
-        <line x1="29" y1="20" x2="30" y2="27" stroke="rgba(108,99,255,0.5)" stroke-width="0.8" stroke-dasharray="2 2"/>
+        <line x1="29" y1="20" x2="30" y2="27" stroke="rgba(48,73,109,0.5)" stroke-width="0.8" stroke-dasharray="2 2"/>
         <!-- AI spark top right -->
         <circle cx="36" cy="15" r="1" fill="white" opacity="0.7"/>
         <circle cx="33" cy="12" r="0.7" fill="white" opacity="0.5"/>
@@ -80,7 +80,7 @@
     </div>
     <div class="nav-item" onclick="quickFilter('status','In Progress')">
       <span class="nav-icon">🔄</span> In Progress
-      <span class="nav-badge qf-badge" id="qf-inprogress" style="background:#6C63FF">0</span>
+      <span class="nav-badge qf-badge" id="qf-inprogress" style="background:#30496d">0</span>
     </div>
     <div class="nav-item" onclick="quickFilter('status','On Going')">
       <span class="nav-icon">🔵</span> On Going
@@ -127,7 +127,8 @@
         Sync Sheets
       </button>
       <button class="btn btn-share" onclick="openShareModal()">📤 Share</button>
-      <button class="btn btn-secondary" onclick="exportCSV()">⬇️ Export CSV</button>
+      <button class="btn btn-secondary" onclick="openExportModal()">⬇️ Export CSV</button>
+      <button class="btn btn-core" onclick="navigate('initiatives')">📦 Core Activities</button>
       <button class="btn btn-primary" onclick="openModal()">＋ Add Activity</button>
     </div>
   </header>
@@ -145,7 +146,7 @@
         <canvas id="chart-owner"></canvas>
       </div>
     </div>
-    <div class="chart-card" style="margin-bottom:28px">
+    <div class="chart-card" style="margin-bottom:18px">
       <div class="chart-card-title">🎯 Activities by Type</div>
       <canvas id="chart-type" style="max-height:160px"></canvas>
     </div>
@@ -270,7 +271,7 @@
     </div>
     <div class="cal-legend">
       <span class="cal-leg"><span class="cal-dot" style="background:#00C896"></span>Completed</span>
-      <span class="cal-leg"><span class="cal-dot" style="background:#6C63FF"></span>In Progress</span>
+      <span class="cal-leg"><span class="cal-dot" style="background:#30496d"></span>In Progress</span>
       <span class="cal-leg"><span class="cal-dot" style="background:#FFB347"></span>On Going</span>
       <span class="cal-leg"><span class="cal-dot" style="background:#8B97A8"></span>Not Started</span>
     </div>
@@ -442,11 +443,11 @@
 
     <div class="form-group" style="margin-bottom:12px">
       <label class="form-label">Subject</label>
-      <input type="text" id="share-subject" value="L&D Team — Activity Tracker Update" style="width:100%;padding:10px 12px;border-radius:10px" />
+      <input type="text" id="share-subject" value="L&D Team — Activity Tracker Update" style="width:100%;padding:10px 12px;border-radius:6px" />
     </div>
     <div class="form-group" style="margin-bottom:14px">
       <label class="form-label">Message</label>
-      <textarea id="share-message" rows="7" style="width:100%;padding:10px 12px;border-radius:10px;font-size:12px;line-height:1.7;font-family:var(--font-main)"></textarea>
+      <textarea id="share-message" rows="7" style="width:100%;padding:10px 12px;border-radius:6px;font-size:12px;line-height:1.7;font-family:var(--font-main)"></textarea>
     </div>
 
     <div class="reminder-box">
@@ -478,7 +479,7 @@
       📋 <strong>Your Sheet:</strong>
       <a href="https://docs.google.com/spreadsheets/d/1B5cI9UpRKemHf7OnwanVR9Lz-JUIpjwgVLgUOVIk6qY/edit?gid=2050775428" target="_blank" style="color:#0F9D58;word-break:break-all">Open Google Sheet ↗</a>
     </div>
-    <div style="background:rgba(255,179,71,0.1);border:1px solid rgba(255,179,71,0.3);border-radius:10px;padding:12px 14px;margin-bottom:14px;font-size:12px;color:var(--text-secondary);line-height:1.7">
+    <div style="background:rgba(255,179,71,0.1);border:1px solid rgba(255,179,71,0.3);border-radius:8px;padding:12px 14px;margin-bottom:14px;font-size:12px;color:var(--text-secondary);line-height:1.7">
       ⚠️ <strong>Required first:</strong> Open your Sheet → <strong>File → Share → Publish to web</strong> → select <em>Entire Document</em> as <em>Comma-separated values (.csv)</em> → <strong>Publish</strong>. Then click Sync below.
     </div>
     <div id="sync-status" style="display:none;padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:12px;line-height:1.6"></div>
@@ -486,6 +487,33 @@
       <button class="btn btn-secondary" onclick="closeSheetsSyncModal()">Cancel</button>
       <a href="https://docs.google.com/spreadsheets/d/1B5cI9UpRKemHf7OnwanVR9Lz-JUIpjwgVLgUOVIk6qY/edit?gid=2050775428" target="_blank" class="btn btn-secondary">Open Sheet ↗</a>
       <button class="btn btn-primary" id="sync-btn" onclick="syncFromSheets()" style="background:linear-gradient(135deg,#0F9D58,#0D8A4E);border:none">🔄 Sync Now</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ EXPORT CSV MODAL ══════════ -->
+<div class="modal-overlay" id="export-modal-overlay" onclick="onExportOverlayClick(event)">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-title">⬇️ Export Activity Data</div>
+    <p style="color:var(--text-secondary);font-size:13px;margin-bottom:18px">Download all L&D activities as a CSV file for reporting and analysis.</p>
+
+    <div style="background:var(--bg-input);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:14px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <span style="font-weight:700;font-size:13px">📊 Export Summary</span>
+      </div>
+      <div style="font-size:12px;color:var(--text-secondary);line-height:1.8" id="export-summary">
+        Loading...
+      </div>
+    </div>
+
+    <div class="form-group" style="margin-bottom:14px">
+      <label class="form-label">File Name</label>
+      <input type="text" id="export-filename" style="width:100%;padding:10px 12px;border-radius:6px" />
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeExportModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="doExportCSV()">⬇️ Download CSV</button>
     </div>
   </div>
 </div>
