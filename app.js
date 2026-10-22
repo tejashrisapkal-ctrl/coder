@@ -221,39 +221,53 @@ function renderDashboard() {
   renderRecentList();
 }
 
+function getOwnerCounts(statusFilter = null) {
+  const counts = {};
+  OWNERS.forEach(o => { counts[o] = 0; });
+  const list = statusFilter ? activities.filter(a => a.status === statusFilter) : activities;
+  list.forEach(a => {
+    const parts = (a.owner || '').split('/');
+    parts.forEach(p => {
+      const name = p.trim();
+      if (counts[name] !== undefined) counts[name]++;
+    });
+  });
+  return counts;
+}
+
 function renderStatsStrip() {
   const total = activities.length;
   const completed = activities.filter(a => a.status === 'Completed').length;
   const inprogress = activities.filter(a => a.status === 'In Progress').length;
   const ongoing = activities.filter(a => a.status === 'On Going').length;
   const notStarted = activities.filter(a => a.status === 'Not Started').length;
-  const pct = total ? Math.round((completed / total) * 100) : 0;
 
-  // Owner breakdown for total
-  const ownerBreakdown = {};
-  OWNERS.forEach(o => { ownerBreakdown[o] = 0; });
-  activities.forEach(a => {
-    const parts = a.owner.split('/');
-    parts.forEach(p => {
-      const name = p.trim();
-      if (ownerBreakdown[name] !== undefined) ownerBreakdown[name]++;
-    });
-  });
-  const ownerText = OWNERS.map(o => `${o.substring(0,3)}: ${ownerBreakdown[o]}`).join(' · ');
+  const totalOwners = getOwnerCounts(null);
+  const completedOwners = getOwnerCounts('Completed');
+  const inprogressOwners = getOwnerCounts('In Progress');
+  const ongoingOwners = getOwnerCounts('On Going');
+  const notStartedOwners = getOwnerCounts('Not Started');
 
   const cells = [
-    { value: total,      label: 'Total Activities', sub: ownerText,             accent: '#30496d' },
-    { value: completed,  label: 'Completed',        sub: `${pct}% done`,        accent: '#00C896' },
-    { value: inprogress, label: 'In Progress',      sub: `Active work`,         accent: '#30496d' },
-    { value: ongoing,    label: 'On Going',         sub: 'Recurring',           accent: '#f46262' },
-    { value: notStarted, label: 'Not Started',      sub: 'Yet to begin',        accent: '#8B97A8' },
+    { value: total,      label: 'Total Activities', accent: '#30496d', owners: totalOwners },
+    { value: completed,  label: 'Completed',        accent: '#00C896', owners: completedOwners },
+    { value: inprogress, label: 'In Progress',      accent: '#30496d', owners: inprogressOwners },
+    { value: ongoing,    label: 'On Going',         accent: '#f46262', owners: ongoingOwners },
+    { value: notStarted, label: 'Not Started',      accent: '#8B97A8', owners: notStartedOwners },
   ];
 
   document.getElementById('stats-strip').innerHTML = cells.map(c => `
     <div class="stat-cell" style="--cell-accent:${c.accent}">
       <div class="stat-value">${c.value}</div>
       <div class="stat-label">${c.label}</div>
-      <div class="stat-sub">${c.sub}</div>
+      <div class="stat-owner-list">
+        ${OWNERS.map(o => `
+          <div class="stat-owner-row">
+            <span class="stat-owner-name">${o}</span>
+            <span class="stat-owner-num">${c.owners[o] || 0}</span>
+          </div>
+        `).join('')}
+      </div>
     </div>
   `).join('');
 }
@@ -417,6 +431,7 @@ function getFiltered() {
   const owner  = document.getElementById('filter-owner')?.value || '';
   const type   = document.getElementById('filter-type')?.value || '';
   const init   = document.getElementById('filter-initiative')?.value || '';
+  const month  = document.getElementById('filter-month')?.value || '';
   const q      = searchQuery.toLowerCase();
 
   return activities
@@ -425,6 +440,7 @@ function getFiltered() {
       (!owner  || a.owner === owner || a.owner.includes(owner)) &&
       (!type   || a.type === type) &&
       (!init   || a.initiative === init) &&
+      (!month  || isActivityInMonth(a, month)) &&
       (!q      || a.name.toLowerCase().includes(q) || (a.owner||'').toLowerCase().includes(q) || (a.initiative||'').toLowerCase().includes(q))
     )
     .sort((a, b) => {
@@ -434,6 +450,17 @@ function getFiltered() {
       if (av > bv) return sortDir;
       return 0;
     });
+}
+
+function isActivityInMonth(a, monthStr) {
+  // Check if activity touches monthStr (e.g. "04" for April 2026)
+  const m = parseInt(monthStr, 10);
+  if (!a.startDate && !a.endDate) return false;
+  const start = a.startDate ? new Date(a.startDate) : new Date(a.endDate);
+  const end = a.endDate ? new Date(a.endDate) : new Date(a.startDate);
+  const targetStart = new Date(2026, m - 1, 1);
+  const targetEnd = new Date(2026, m, 0, 23, 59, 59);
+  return start <= targetEnd && end >= targetStart;
 }
 
 function renderTable(rows) {
@@ -504,8 +531,9 @@ function sortTable(col) {
 
 function applyFilters() { renderTable(getFiltered()); }
 function clearFilters() {
-  ['filter-status','filter-owner','filter-type','filter-initiative'].forEach(id => {
-    document.getElementById(id).value = '';
+  ['filter-status','filter-owner','filter-type','filter-initiative','filter-month'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
   });
   searchQuery = '';
   document.getElementById('global-search').value = '';
@@ -615,9 +643,21 @@ function saveInitiative(e) {
    9. CALENDAR
 ────────────────────────────────────────── */
 
+const CAL_MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const CAL_MONTH_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
 function renderCalendar() {
-  const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-  document.getElementById('cal-month-label').textContent = `${monthNames[calMonth]} ${calYear}`;
+  document.getElementById('cal-month-label').textContent = `${CAL_MONTH_NAMES[calMonth]} ${calYear}`;
+
+  // Render Month Pills
+  const pillsContainer = document.getElementById('cal-month-pills');
+  if (pillsContainer) {
+    pillsContainer.innerHTML = CAL_MONTH_SHORT.map((m, idx) => `
+      <div class="month-pill ${idx === calMonth ? 'active' : ''}" onclick="selectCalMonth(${idx})">
+        ${m} 2026
+      </div>
+    `).join('');
+  }
 
   const grid = document.getElementById('cal-grid');
   const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
@@ -640,7 +680,9 @@ function renderCalendar() {
       if (dt.getMonth() === calMonth && dt.getFullYear() === calYear) {
         const key = dt.getDate();
         if (!dateMap[key]) dateMap[key] = [];
-        dateMap[key].push(a);
+        if (!dateMap[key].some(item => item.id === a.id)) {
+          dateMap[key].push(a);
+        }
       }
     });
   });
@@ -676,6 +718,44 @@ function renderCalendar() {
 
   grid.innerHTML = html;
   document.getElementById('cal-day-detail').style.display = 'none';
+
+  // Render month activities table
+  renderCalMonthActivities();
+}
+
+function selectCalMonth(monthIndex) {
+  calMonth = monthIndex;
+  renderCalendar();
+}
+
+function renderCalMonthActivities() {
+  const monthStr = String(calMonth + 1).padStart(2, '0');
+  const monthActivities = activities.filter(a => isActivityInMonth(a, monthStr));
+  const tbody = document.getElementById('cal-month-activities-tbody');
+  const title = document.getElementById('cal-month-activities-title');
+  if (title) title.textContent = `📋 Activities in ${CAL_MONTH_NAMES[calMonth]} 2026 (${monthActivities.length})`;
+
+  if (!tbody) return;
+
+  if (!monthActivities.length) {
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:16px;color:var(--text-muted)">No activities scheduled in ${CAL_MONTH_NAMES[calMonth]} 2026.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = monthActivities.map((a, i) => `
+    <tr>
+      <td>${i + 1}</td>
+      <td style="font-weight:600">${esc(a.name)}</td>
+      <td>${esc(a.owner)}</td>
+      <td style="color:var(--text-secondary);font-size:11px">${esc(a.initiative || '—')}</td>
+      <td style="white-space:nowrap;font-size:11px">${fmtDate(a.startDate)} → ${fmtDate(a.endDate)}</td>
+      <td><span class="badge ${badgeClass(a.status)}">${a.status}</span></td>
+      <td>
+        <button class="btn btn-sm btn-secondary" onclick="editActivity(${a.id})">✏️</button>
+        <a class="btn btn-sm btn-secondary" href="${buildGCalUrl(a)}" target="_blank" title="Add to Calendar">📅</a>
+      </td>
+    </tr>
+  `).join('');
 }
 
 function showCalDayDetail(day) {
@@ -731,17 +811,39 @@ function calToday() {
 const GANTT_START = new Date('2026-04-01');
 const GANTT_END   = new Date('2026-12-31');
 const MONTHS = ['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const MONTH_INDEX_MAP = { 'Apr': 4, 'May': 5, 'Jun': 6, 'Jul': 7, 'Aug': 8, 'Sep': 9, 'Oct': 10, 'Nov': 11, 'Dec': 12 };
+let ganttSelectedMonth = null;
 
 function renderGantt() {
   const ownerFilter = document.getElementById('gantt-filter-owner')?.value || '';
+  
+  // Render Month Pill Filter
+  const pillsContainer = document.getElementById('gantt-month-pills');
+  if (pillsContainer) {
+    pillsContainer.innerHTML = `
+      <div class="month-pill ${ganttSelectedMonth === null ? 'active' : ''}" onclick="selectGanttMonth(null)">
+        All Months
+      </div>
+      ${MONTHS.map(m => `
+        <div class="month-pill ${ganttSelectedMonth === m ? 'active' : ''}" onclick="selectGanttMonth('${m}')">
+          ${m} 2026
+        </div>
+      `).join('')}
+    `;
+  }
+
   const rows = activities.filter(a => {
     if (ownerFilter && a.owner !== ownerFilter && !a.owner.includes(ownerFilter)) return false;
+    if (ganttSelectedMonth) {
+      const monthNum = String(MONTH_INDEX_MAP[ganttSelectedMonth]).padStart(2, '0');
+      if (!isActivityInMonth(a, monthNum)) return false;
+    }
     return a.startDate || a.endDate;
   });
 
-  // Month headers
+  // Month headers with click interaction
   document.getElementById('gantt-month-headers').innerHTML = MONTHS.map(m =>
-    `<div class="gantt-month-label" style="flex:1">${m}</div>`
+    `<div class="gantt-month-label ${ganttSelectedMonth === m ? 'active' : ''}" style="flex:1;cursor:pointer" onclick="selectGanttMonth('${m}')" title="Click to view ${m} activities">${m}</div>`
   ).join('');
 
   const totalDays = daysBetween(GANTT_START, GANTT_END);
@@ -771,7 +873,51 @@ function renderGantt() {
           </div>
         </div>`;
       }).join('')
-    : `<div class="empty-state" style="padding:36px"><div class="empty-icon">📭</div><p>No activities with dates to display.</p></div>`;
+    : `<div class="empty-state" style="padding:36px"><div class="empty-icon">📭</div><p>No activities with dates in selected period.</p></div>`;
+
+  renderGanttMonthActivities();
+}
+
+function selectGanttMonth(monthName) {
+  ganttSelectedMonth = monthName;
+  renderGantt();
+}
+
+function renderGanttMonthActivities() {
+  const card = document.getElementById('gantt-month-activities');
+  const tbody = document.getElementById('gantt-month-activities-tbody');
+  const title = document.getElementById('gantt-month-activities-title');
+  if (!card || !tbody) return;
+
+  if (!ganttSelectedMonth) {
+    card.style.display = 'none';
+    return;
+  }
+
+  const monthNum = String(MONTH_INDEX_MAP[ganttSelectedMonth]).padStart(2, '0');
+  const monthActivities = activities.filter(a => isActivityInMonth(a, monthNum));
+  title.textContent = `📋 Activities in ${ganttSelectedMonth} 2026 (${monthActivities.length})`;
+  card.style.display = 'block';
+
+  if (!monthActivities.length) {
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:16px;color:var(--text-muted)">No activities active in ${ganttSelectedMonth} 2026.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = monthActivities.map((a, i) => `
+    <tr>
+      <td>${i + 1}</td>
+      <td style="font-weight:600">${esc(a.name)}</td>
+      <td>${esc(a.owner)}</td>
+      <td style="color:var(--text-secondary);font-size:11px">${esc(a.initiative || '—')}</td>
+      <td style="white-space:nowrap;font-size:11px">${fmtDate(a.startDate)} → ${fmtDate(a.endDate)}</td>
+      <td><span class="badge ${badgeClass(a.status)}">${a.status}</span></td>
+      <td>
+        <button class="btn btn-sm btn-secondary" onclick="editActivity(${a.id})">✏️</button>
+        <a class="btn btn-sm btn-secondary" href="${buildGCalUrl(a)}" target="_blank" title="Add to Calendar">📅</a>
+      </td>
+    </tr>
+  `).join('');
 }
 
 function daysBetween(a, b) {
@@ -965,7 +1111,12 @@ function onSheetsOverlayClick(e) {
 ────────────────────────────────────────── */
 
 function openShareModal() {
-  document.getElementById('share-link').value = window.location.href;
+  const link = window.location.href;
+  document.getElementById('share-link').value = link;
+  const preview = document.getElementById('share-message-preview');
+  if (preview) {
+    preview.value = `Hi Team,\n\nPlease find the L&D Activity Tracker shared with you:\nTracker Link: ${link}\nGoogle Sheet: ${GOOGLE_SHEET_URL}\n\nBest Regards,\nL&D Team`;
+  }
   document.getElementById('share-modal-overlay').classList.add('open');
 }
 
@@ -1000,7 +1151,6 @@ function copyShareLink() {
   navigator.clipboard.writeText(link).then(() => {
     showToast('📋 Link copied to clipboard!', 'success');
   }).catch(() => {
-    // Fallback
     const input = document.getElementById('share-link');
     input.select();
     document.execCommand('copy');
@@ -1008,20 +1158,56 @@ function copyShareLink() {
   });
 }
 
-function sendShareEmail() {
+function getShareData() {
   const emailChips = document.querySelectorAll('#share-email-chips .email-chip');
   const emails = Array.from(emailChips).map(c => c.dataset.email).filter(Boolean);
+  const link = document.getElementById('share-link').value || window.location.href;
+  const subject = 'L&D Tracker — Task Sheet Shared';
+  const body = `Hi Team,\n\nPlease find the L&D Activity Tracker shared with you:\n\nTracker Link: ${link}\nGoogle Sheet: ${GOOGLE_SHEET_URL}\n\nBest Regards,\nL&D Team`;
+  return { emails, subject, body };
+}
+
+function sendViaGmail() {
+  const { emails, subject, body } = getShareData();
+  if (!emails.length) { showToast('⚠️ Add at least one email', 'error'); return; }
+  
+  const toStr = emails.join(',');
+  const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(toStr)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  window.open(gmailUrl, '_blank');
+  showToast('📧 Opening in Gmail...', 'success');
+  closeShareModal();
+}
+
+function sendViaMailto() {
+  const { emails, subject, body } = getShareData();
   if (!emails.length) { showToast('⚠️ Add at least one email', 'error'); return; }
 
-  const link = document.getElementById('share-link').value;
-  const subject = encodeURIComponent('L&D Tracker — Task Sheet Shared');
-  const body = encodeURIComponent(
-    `Hi Team,\n\nPlease find the L&D Activity Tracker shared with you.\n\nTracker Link: ${link}\n\nGoogle Sheet: ${GOOGLE_SHEET_URL}\n\nBest Regards,\nL&D Team`
-  );
-
-  window.open(`mailto:${emails.join(',')}?subject=${subject}&body=${body}`, '_blank');
-  showToast('📧 Email client opened!', 'success');
+  const toStr = emails.join(',');
+  const mailtoUri = `mailto:${toStr}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  
+  // Safe trigger without opening a blank tab
+  const link = document.createElement('a');
+  link.href = mailtoUri;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  
+  showToast('💻 Opening default mail app...', 'info');
   closeShareModal();
+}
+
+function copyShareMessage() {
+  const { body } = getShareData();
+  navigator.clipboard.writeText(body).then(() => {
+    showToast('📋 Message copied to clipboard!', 'success');
+  }).catch(() => {
+    const preview = document.getElementById('share-message-preview');
+    if (preview) {
+      preview.select();
+      document.execCommand('copy');
+      showToast('📋 Message copied!', 'success');
+    }
+  });
 }
 
 /* ──────────────────────────────────────────
@@ -1098,7 +1284,12 @@ function sendReminderEmail(activityId) {
     `Best Regards,\nL&D Team`
   );
 
-  window.open(`mailto:${TEAM_EMAILS.join(',')}?subject=${subject}&body=${body}`, '_blank');
+  const link = document.createElement('a');
+  link.href = `mailto:${TEAM_EMAILS.join(',')}?subject=${subject}&body=${body}`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  showToast('📧 Reminder email opened!', 'info');
 }
 
 /* ──────────────────────────────────────────

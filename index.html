@@ -150,6 +150,21 @@
         </select>
       </div>
       <div class="filter-group">
+        <span class="filter-label">Month</span>
+        <select id="filter-month" onchange="applyFilters()">
+          <option value="">All Months</option>
+          <option value="04">April 2026</option>
+          <option value="05">May 2026</option>
+          <option value="06">June 2026</option>
+          <option value="07">July 2026</option>
+          <option value="08">August 2026</option>
+          <option value="09">September 2026</option>
+          <option value="10">October 2026</option>
+          <option value="11">November 2026</option>
+          <option value="12">December 2026</option>
+        </select>
+      </div>
+      <div class="filter-group">
         <span class="filter-label">Initiative</span>
         <select id="filter-initiative" onchange="applyFilters()">
           <option value="">All</option>
@@ -215,8 +230,33 @@
         <button class="btn btn-secondary btn-sm" onclick="calToday()">Today</button>
       </div>
     </div>
+    
+    <!-- Quick Month Selector for Calendar -->
+    <div class="month-pill-bar" id="cal-month-pills"></div>
+
     <div class="cal-grid" id="cal-grid"></div>
     <div class="cal-day-detail" id="cal-day-detail" style="display:none"></div>
+
+    <!-- Monthly Activities Breakdown -->
+    <div class="month-activities-card" id="cal-month-activities">
+      <div class="section-title" id="cal-month-activities-title" style="margin-bottom:12px">📋 Activities for Selected Month</div>
+      <div class="table-wrapper">
+        <table class="compact-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Activity Name</th>
+              <th>Owner</th>
+              <th>Initiative</th>
+              <th>Dates</th>
+              <th>Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="cal-month-activities-tbody"></tbody>
+        </table>
+      </div>
+    </div>
   </section>
 
   <!-- ══ PAGE: GANTT ══ -->
@@ -229,6 +269,10 @@
         </select>
       </div>
     </div>
+
+    <!-- Quick Month Filter for Timeline -->
+    <div class="month-pill-bar" id="gantt-month-pills"></div>
+
     <div class="gantt-wrapper">
       <div class="gantt-header">
         <div class="gantt-row" style="min-height:36px">
@@ -239,6 +283,27 @@
         </div>
       </div>
       <div class="gantt-body" id="gantt-body"></div>
+    </div>
+
+    <!-- Activities in Selected Timeline Month -->
+    <div class="month-activities-card" id="gantt-month-activities" style="margin-top:20px; display:none;">
+      <div class="section-title" id="gantt-month-activities-title" style="margin-bottom:12px">📋 Activities in Selected Month</div>
+      <div class="table-wrapper">
+        <table class="compact-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Activity Name</th>
+              <th>Owner</th>
+              <th>Initiative</th>
+              <th>Dates</th>
+              <th>Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="gantt-month-activities-tbody"></tbody>
+        </table>
+      </div>
     </div>
   </section>
 
@@ -371,12 +436,21 @@
       <label class="form-label">Shareable Link</label>
       <div style="display:flex;gap:6px">
         <input type="text" id="share-link" readonly value="" style="flex:1;font-size:11px" />
-        <button type="button" class="btn btn-secondary btn-sm" onclick="copyShareLink()">📋 Copy</button>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="copyShareLink()">📋 Copy Link</button>
       </div>
     </div>
-    <div class="modal-footer">
+    <div class="form-group" style="margin-bottom:16px">
+      <label class="form-label">Message Preview</label>
+      <textarea id="share-message-preview" readonly style="font-size:11px;min-height:75px;background:var(--bg-input);color:var(--text-secondary);"></textarea>
+    </div>
+    <div class="modal-footer" style="flex-wrap:wrap;gap:8px">
       <button type="button" class="btn btn-secondary" onclick="closeShareModal()">Close</button>
-      <button type="button" class="btn btn-primary" onclick="sendShareEmail()">📧 Send Email</button>
+      <button type="button" class="btn btn-secondary" onclick="copyShareMessage()">📋 Copy Message</button>
+      <button type="button" class="btn btn-secondary" onclick="sendViaMailto()">💻 Mail App</button>
+      <button type="button" class="btn btn-primary" onclick="sendViaGmail()" style="background:#EA4335">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="white" style="margin-right:2px"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
+        Open in Gmail
+      </button>
     </div>
   </div>
 </div>
