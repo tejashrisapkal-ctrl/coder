@@ -131,6 +131,7 @@
       <button class="btn btn-primary" onclick="openModal()">＋ Add Activity</button>
     </div>
   </header>
+    <div class="owner-boxes" id="owner-boxes"></div>
 
   <!-- ══ PAGE: DASHBOARD ══ -->
   <section class="page active" id="page-dashboard">
@@ -228,6 +229,7 @@
     <div class="section-header">
       <div class="section-title">🎯 Core L&D Initiatives</div>
       <div class="section-actions">
+        <button class="btn btn-primary btn-sm" onclick="openAddCoreInitiativeModal()" style="margin-right:10px">＋ Add Core Initiative</button>
         <select id="filter-init-category" onchange="renderInitiatives()">
           <option value="">All Categories</option>
           <option>I&D Team</option>
@@ -398,6 +400,13 @@
         <div class="form-group full">
           <label class="form-label">Notes</label>
           <textarea id="f-notes" placeholder="Any additional notes or context…"></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">📅 Meeting Date (optional)</label>
+          <input type="date" id="f-meeting" title="Schedule a meeting for this task — you will get a reminder the day before" />
+        </div>
+        <div class="form-group" style="display:flex;align-items:flex-end">
+          <small style="color:var(--text-muted);font-size:11px;line-height:1.5">📬 If a meeting date is set, a reminder email + calendar (.ics) file will be sent the day before with:<br>"<em>All the best for meeting and task! 🙌</em>"</small>
         </div>
       </div>
       <div class="modal-footer">

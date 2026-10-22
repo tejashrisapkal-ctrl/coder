@@ -9,11 +9,11 @@
 :root {
   --font-main: 'Plus Jakarta Sans', sans-serif;
   --font-display: 'Plus Jakarta Sans', sans-serif;
-  --font-display: 'Outfit', sans-serif;
+  /* Removed duplicate font-display; using Plus Jakarta Sans */
 
-  --brand-primary: #6C63FF;
+  --brand-primary: #30496d;
   --brand-secondary: #00D4AA;
-  --brand-accent: #FF6B6B;
+  --brand-accent: #f46262;
   --brand-amber: #FFB347;
 
   --status-completed: #00C896;
@@ -266,11 +266,19 @@ body {
 .stats-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(190px,1fr)); gap: 16px; margin-bottom: 24px; }
 
 /* Owner boxes – horizontal row */
-.owner-boxes { display: flex; gap: 12px; margin-bottom: 24px; }
+.owner-boxes { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 24px; }
 .owner-box { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; flex: 1; min-width: 120px; text-align: center; }
 .owner-box .owner-name { font-weight: 600; font-size: 13px; margin-bottom: 4px; }
 .owner-box .task-count { font-size: 24px; font-weight: 700; font-family: var(--font-display); }
+.owner-box .owner-sub { font-size: 12px; color: var(--text-secondary); margin-top: 4px; }
 .owner-box .task-label { font-size: 11px; color: var(--text-muted); }
+.owner-box-stats { display: flex; justify-content: center; gap: 8px; margin-top: 6px; flex-wrap: wrap; }
+.ob-stat { font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: 20px; }
+.ob-stat.done  { background: rgba(0,200,150,0.13); color: #00c896; }
+.ob-stat.pend  { background: rgba(255,179,71,0.13); color: #e6a030; }
+.owner-box-bar { height: 4px; background: var(--border); border-radius: 99px; margin-top: 8px; overflow: hidden; }
+.owner-box-bar-fill { height: 100%; background: linear-gradient(90deg, var(--brand-primary), var(--brand-accent)); border-radius: 99px; transition: width .4s ease; }
+.sub-act-item { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 10px; background: var(--bg-card); border: 1px solid var(--border); margin-bottom: 6px; font-size: 13px; }
 .stat-card {
   background: var(--bg-card); border: 1px solid var(--border); border-radius: 15px;
   padding: 20px 22px; backdrop-filter: blur(12px); box-shadow: var(--shadow-sm);

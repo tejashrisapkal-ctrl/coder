@@ -69,12 +69,14 @@ const DEFAULT_ACTIVITIES = [
 
 /* ── 2. STATE ── */
 let activities = [];
+let coreInitiatives = JSON.parse(localStorage.getItem('ld_core_initiatives')||'[]');
 let nextId = 21;
 let editingId = null;
 let sortCol = 'id';
 let sortDir = 1;
 let searchQuery = '';
 let chartStatus, chartOwner, chartType;
+let subActivityModal = null;
 
 // Calendar state — start at current month (Oct 2026)
 let calYear  = 2026;
@@ -121,6 +123,11 @@ function loadData() {
   } else {
     activities = [...DEFAULT_ACTIVITIES];
   }
+  // Load extra initiatives saved by user
+  const extraInits = JSON.parse(localStorage.getItem('ld_extra_initiatives')||'[]');
+  extraInits.forEach(ni => {
+    if (!INITIATIVES.find(i=>i.id===ni.id)) INITIATIVES.push(ni);
+  });
 }
 
 function saveData() { localStorage.setItem('ld_tracker_v2', JSON.stringify(activities)); }
@@ -188,6 +195,7 @@ function renderSideBadges() {
 /* ── 6. DASHBOARD ── */
 function renderDashboard() {
   renderStatsCards();
+  renderOwnerBoxes();
   renderCharts();
   renderRecentList();
 }
@@ -216,6 +224,32 @@ function renderStatsCards() {
       <div class="stat-label">${c.label}</div>
       <div class="stat-sub">${c.sub}</div>
     </div>`).join('');
+}
+
+/* ── 6b. OWNER SUMMARY BOXES ── */
+function renderOwnerBoxes() {
+  const container = document.getElementById('owner-boxes');
+  if (!container) return;
+  const ownerNames = Object.keys(TEAM_EMAILS);
+  container.innerHTML = ownerNames.map(name => {
+    const owned = activities.filter(a => a.owner.split('/').map(o=>o.trim()).includes(name));
+    const total   = owned.length;
+    const done    = owned.filter(a => a.status === 'Completed').length;
+    const pending = total - done;
+    const pct     = total ? Math.round((done/total)*100) : 0;
+    const avatarCls = avatarClass(name);
+    return `<div class="owner-box" onclick="quickFilter('owner','${name}')" title="Click to filter by ${name}" style="cursor:pointer">
+      <div class="owner-box-avatar av-dot ${avatarCls}" style="width:36px;height:36px;font-size:14px;margin:0 auto 8px">${name[0]}</div>
+      <div class="owner-name">${name}</div>
+      <div class="task-count">${total}</div>
+      <div class="owner-sub">Total Tasks</div>
+      <div class="owner-box-stats">
+        <span class="ob-stat done">✅ ${done} Done</span>
+        <span class="ob-stat pend">⏳ ${pending} Pending</span>
+      </div>
+      <div class="owner-box-bar"><div class="owner-box-bar-fill" style="width:${pct}%"></div></div>
+    </div>`;
+  }).join('');
 }
 
 function isDark() { return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches; }
@@ -329,9 +363,10 @@ function renderTable(rows) {
       o = o.trim();
       return `<span class="owner-chip"><span class="av-dot ${avatarClass(o)}" style="width:17px;height:17px;font-size:8px">${o[0]}</span>${esc(o)}</span>`;
     }).join('');
+    const subCount = (a.subActivities||[]).length;
     return `<tr class="${rowClass(a.status)}" id="row-${a.id}">
       <td class="sr-num">${idx+1}</td>
-      <td class="activity-name">${esc(a.name)}${a.notes?`<small title="${esc(a.notes)}">📝 ${esc(a.notes.substring(0,38))}${a.notes.length>38?'…':''}</small>`:''}</td>
+      <td class="activity-name">${esc(a.name)}${a.notes?`<small title="${esc(a.notes)}">📝 ${esc(a.notes.substring(0,38))}${a.notes.length>38?'…':''}</small>`:''}${subCount?`<small style="color:var(--brand-primary)">📌 ${subCount} sub-task${subCount>1?'s':''}</small>`:''}</td>
       <td>${ownerHtml}</td>
       <td style="font-size:12px;color:var(--text-secondary);max-width:155px">${a.initiative?`<span title="${esc(a.initiative)}">${esc(a.initiative.substring(0,26))}${a.initiative.length>26?'…':''}</span>`:'<span style="color:var(--text-muted)">—</span>'}</td>
       <td style="white-space:nowrap;font-size:12px">${fmtDate(a.startDate)}</td>
@@ -340,6 +375,7 @@ function renderTable(rows) {
       <td>${a.type?`<span class="type-tag">${esc(a.type)}</span>`:'<span style="color:var(--text-muted)">—</span>'}</td>
       <td><div class="action-btns">
         <button class="btn btn-sm btn-secondary" onclick="editActivity(${a.id})" title="Edit">✏️</button>
+        <button class="btn btn-sm" style="background:rgba(0,180,120,0.13);color:#00b478;border:1px solid rgba(0,180,120,0.25)" onclick="openSubActivityModal(${a.id})" title="Add Sub-Activity">➕ Sub</button>
         <button class="btn btn-sm btn-danger" onclick="deleteActivity(${a.id})" title="Delete">🗑️</button>
       </div></td>
     </tr>`;
@@ -364,6 +400,23 @@ function clearFilters() {
 function onSearch(v) { searchQuery=v; renderTable(getFiltered()); }
 
 /* ── 8. INITIATIVES — RECTANGULAR ── */
+/* ── 8b. CORE INITIATIVES ── */
+function openAddCoreInitiativeModal() {
+  const name = prompt('Enter new Core Initiative name:');
+  if (!name || !name.trim()) return;
+  const cat  = prompt('Enter category (e.g. Org Competency, AI Adoption, Compliance, Other):') || 'Other';
+  const newId = INITIATIVES.length ? Math.max(...INITIATIVES.map(i=>i.id))+1 : 19;
+  const ni = { id: newId, name: name.trim(), category: cat.trim() };
+  INITIATIVES.push(ni);
+  // Persist extra initiatives to localStorage
+  const extra = JSON.parse(localStorage.getItem('ld_extra_initiatives')||'[]');
+  extra.push(ni);
+  localStorage.setItem('ld_extra_initiatives', JSON.stringify(extra));
+  populateInitDropdowns();
+  renderInitiatives();
+  showToast(`🎯 Core Initiative "${ni.name}" added!`, 'success');
+}
+
 function renderInitiatives() {
   const cat = document.getElementById('filter-init-category')?.value||'';
   const list = cat ? INITIATIVES.filter(i=>i.category===cat) : INITIATIVES;
@@ -593,13 +646,14 @@ function openModal(id=null) {
     if (!a) return;
     document.getElementById('modal-title').textContent = '✏️ Edit Activity';
     document.getElementById('modal-save-btn').textContent = 'Update Activity';
-    document.getElementById('f-name').value      = a.name;
-    document.getElementById('f-status').value    = a.status;
-    document.getElementById('f-start').value     = a.startDate;
-    document.getElementById('f-end').value       = a.endDate;
-    document.getElementById('f-type').value      = a.type;
-    document.getElementById('f-initiative').value= a.initiative;
-    document.getElementById('f-notes').value     = a.notes;
+    document.getElementById('f-name').value        = a.name;
+    document.getElementById('f-status').value      = a.status;
+    document.getElementById('f-start').value       = a.startDate;
+    document.getElementById('f-end').value         = a.endDate;
+    document.getElementById('f-type').value        = a.type;
+    document.getElementById('f-initiative').value  = a.initiative;
+    document.getElementById('f-notes').value       = a.notes;
+    document.getElementById('f-meeting').value     = a.meetingDate||'';
     setSelectedOwners(a.owner);
   } else {
     document.getElementById('modal-title').textContent = '➕ Add Activity';
@@ -618,23 +672,37 @@ function saveActivity(e) {
   if (!owners.length) { showToast('⚠️ Please select at least one owner.','error'); return; }
 
   const data = {
-    name:       document.getElementById('f-name').value.trim(),
-    owner:      owners.join('/'),
-    status:     document.getElementById('f-status').value,
-    startDate:  document.getElementById('f-start').value,
-    endDate:    document.getElementById('f-end').value,
-    type:       document.getElementById('f-type').value,
-    initiative: document.getElementById('f-initiative').value,
-    notes:      document.getElementById('f-notes').value.trim(),
+    name:        document.getElementById('f-name').value.trim(),
+    owner:       owners.join('/'),
+    status:      document.getElementById('f-status').value,
+    startDate:   document.getElementById('f-start').value,
+    endDate:     document.getElementById('f-end').value,
+    type:        document.getElementById('f-type').value,
+    initiative:  document.getElementById('f-initiative').value,
+    notes:       document.getElementById('f-notes').value.trim(),
+    meetingDate: document.getElementById('f-meeting').value,
   };
 
   if (editingId) {
     const idx = activities.findIndex(a=>a.id===editingId);
-    activities[idx] = { id:editingId, ...data };
+    const existing = activities[idx];
+    activities[idx] = { id:editingId, subActivities: existing.subActivities||[], ...data };
     showToast('✅ Activity updated!','success');
   } else {
-    activities.push({ id:nextId++, ...data });
+    activities.push({ id:nextId++, subActivities:[], ...data });
     showToast('🎉 Activity added!','success');
+  }
+
+  // Schedule 2-day ahead browser reminder immediately if end date is in 2 days
+  const endDt = data.endDate ? new Date(data.endDate) : null;
+  if (endDt) {
+    const today = new Date(); today.setHours(0,0,0,0);
+    endDt.setHours(0,0,0,0);
+    const diff = (endDt - today)/(1000*60*60*24);
+    if (diff === 2) {
+      const fd = endDt.toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+      showToast(`📅 Reminder set! This task's completion date is ${fd}.`,'info');
+    }
   }
 
   saveData(); closeModal(); renderAll();
@@ -730,22 +798,57 @@ function checkAndSendReminders() {
     taskDay.setHours(0,0,0,0);
     const diffDays = (taskDay - today) / (1000*60*60*24);
 
-    // 1 day before
-    if (diffDays === 1) {
-      const key = `rem1d_${a.id}_${rawDate}`;
+    // ── 2 days before: completion date reminder ──
+    if (diffDays === 2) {
+      const key = `rem2d_${a.id}_${rawDate}`;
       if (!localStorage.getItem(key)) {
-        fireReminder(a,'📅 Task due TOMORROW', `"${a.name}" by ${a.owner} | Status: ${a.status}`);
+        const friendlyDate = taskDay.toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+        fireReminder(a,
+          '📅 Task Completion Date Approaching',
+          `⚠️ This task's completion date is ${friendlyDate}.\n"${a.name}" — Owner: ${a.owner}`);
+        sendReminderEmail(a, '📅 Task Due in 2 Days', friendlyDate);
         localStorage.setItem(key,'1');
       }
     }
 
-    // Same day — fire between 8–9 AM
+    // ── 1 day before ──
+    if (diffDays === 1) {
+      const key = `rem1d_${a.id}_${rawDate}`;
+      if (!localStorage.getItem(key)) {
+        const friendlyDate = taskDay.toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+        fireReminder(a,'📅 Task due TOMORROW',
+          `This task's completion date is ${friendlyDate}.\n"${a.name}" by ${a.owner} | Status: ${a.status}`);
+        sendReminderEmail(a, '📅 Task Due Tomorrow', friendlyDate);
+        localStorage.setItem(key,'1');
+      }
+    }
+
+    // ── Same day — fire between 8–9 AM ──
     if (diffDays === 0) {
       const hr = now.getHours();
       const key = `rem1h_${a.id}_${rawDate}`;
       if (hr >= 8 && hr < 9 && !localStorage.getItem(key)) {
-        fireReminder(a,'🚨 Task due TODAY (1 hr)', `"${a.name}" by ${a.owner} — Act now!`);
+        fireReminder(a,'🚨 Task due TODAY', `"${a.name}" by ${a.owner} — Act now!`);
+        sendReminderEmail(a, '🚨 Task Due TODAY', taskDay.toLocaleDateString('en-IN'));
         localStorage.setItem(key,'1');
+      }
+    }
+
+    // ── Meeting reminder ──
+    if (a.meetingDate) {
+      const meetDay = new Date(a.meetingDate);
+      meetDay.setHours(0,0,0,0);
+      const meetDiff = (meetDay - today) / (1000*60*60*24);
+      if (meetDiff === 1) {
+        const key = `remmeet_${a.id}_${a.meetingDate}`;
+        if (!localStorage.getItem(key)) {
+          const mFriendly = meetDay.toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+          fireReminder(a, '📆 Meeting Tomorrow!',
+            `Meeting scheduled for ${mFriendly}\nActivity: "${a.name}"\nOwner: ${a.owner}\n\nAll the best for meeting and task! 🙌`);
+          sendMeetingReminderEmail(a, mFriendly);
+          generateMeetingICS(a, meetDay);
+          localStorage.setItem(key,'1');
+        }
       }
     }
   });
@@ -763,22 +866,91 @@ function fireReminder(activity, title, body) {
   sendReminderEmail(activity, title);
 }
 
-function sendReminderEmail(activity, alertTitle) {
-  // Get owner emails
+function sendReminderEmail(activity, alertTitle, friendlyDate) {
   const ownerEmails = activity.owner.split('/').map(o=>{
     const email = TEAM_EMAILS[o.trim()];
     return email || null;
   }).filter(Boolean);
-
   if (!ownerEmails.length) return;
+
+  const fDate = friendlyDate || (activity.endDate ? new Date(activity.endDate).toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'}) : '—');
   const subject = encodeURIComponent(`${alertTitle} — ${activity.name}`);
   const body = encodeURIComponent(
-    `Hi ${activity.owner},\n\n${alertTitle}\n\nActivity: ${activity.name}\nStatus: ${activity.status}\n${activity.endDate?`Due: ${fmtDate(activity.endDate)}`:'Start: ' + fmtDate(activity.startDate)}\nInitiative: ${activity.initiative||'—'}\n\nPlease check the L&D Tracker for details.\n\nL&D Team`
-  );
-  // Open mailto (will open email client silently)
+`Hi ${activity.owner},
+
+${alertTitle}
+
+📋 Activity  : ${activity.name}
+📌 Status    : ${activity.status}
+📅 Due Date  : ${fDate}
+🎯 Initiative: ${activity.initiative||'—'}
+
+This task's completion date is ${fDate}. Please ensure timely completion.
+
+You can view the full tracker here:
+https://docs.google.com/spreadsheets/d/1B5cI9UpRKemHf7OnwanVR9Lz-JUIpjwgVLgUOVIk6qY/edit?gid=2050775428
+
+Best regards,
+L&D Team`);
+
   const link = document.createElement('a');
   link.href = `mailto:${ownerEmails.join(';')}?subject=${subject}&body=${body}`;
   link.click();
+}
+
+function sendMeetingReminderEmail(activity, mFriendly) {
+  const ownerEmails = activity.owner.split('/').map(o=>{
+    const email = TEAM_EMAILS[o.trim()];
+    return email || null;
+  }).filter(Boolean);
+  if (!ownerEmails.length) return;
+
+  const subject = encodeURIComponent(`📆 Meeting Tomorrow — ${activity.name}`);
+  const body = encodeURIComponent(
+`Hi ${activity.owner},
+
+You have a meeting scheduled for ${mFriendly}.
+
+📋 Activity  : ${activity.name}
+📌 Status    : ${activity.status}
+🎯 Initiative: ${activity.initiative||'—'}
+
+All the best for the meeting and task! 🙌
+
+Please review all pending items before the meeting:
+https://docs.google.com/spreadsheets/d/1B5cI9UpRKemHf7OnwanVR9Lz-JUIpjwgVLgUOVIk6qY/edit?gid=2050775428
+
+Best regards,
+L&D Team`);
+
+  const link = document.createElement('a');
+  link.href = `mailto:${ownerEmails.join(';')}?subject=${subject}&body=${body}`;
+  link.click();
+}
+
+function generateMeetingICS(activity, meetDay) {
+  // .ics file so they can add to calendar
+  const pad = n => String(n).padStart(2,'0');
+  const dtStart = `${meetDay.getFullYear()}${pad(meetDay.getMonth()+1)}${pad(meetDay.getDate())}T090000`;
+  const dtEnd   = `${meetDay.getFullYear()}${pad(meetDay.getMonth()+1)}${pad(meetDay.getDate())}T100000`;
+  const ics = [
+    'BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//L&D Tracker//EN',
+    'BEGIN:VEVENT',
+    `DTSTART:${dtStart}`,
+    `DTEND:${dtEnd}`,
+    `SUMMARY:📆 ${activity.name} — Meeting`,
+    `DESCRIPTION:Activity: ${activity.name}\nOwner: ${activity.owner}\nStatus: ${activity.status}\nAll the best for the meeting and task!`,
+    `ORGANIZER:CN=L&D Team:MAILTO:tejashri.sapkal@onixnet.com`,
+    'STATUS:CONFIRMED','END:VEVENT','END:VCALENDAR'
+  ].join('\r\n');
+  const blob = new Blob([ics], {type:'text/calendar'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url;
+  a.download = `Meeting_${activity.name.replace(/[^a-z0-9]/gi,'_').substring(0,30)}.ics`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('📅 Meeting added to calendar (.ics downloaded)!','success');
 }
 
 /* ── 15. GOOGLE SHEETS SYNC ── */
@@ -877,8 +1049,8 @@ function mapStatus(s) {
 
 /* ── 16. EXPORT CSV ── */
 function exportCSV() {
-  const headers = ['Sr No','Name of Activity','Owner','Initiative','Start Date','End Date','Status','Type','Notes'];
-  const rows = activities.map((a,i)=>[i+1,a.name,a.owner,a.initiative,a.startDate,a.endDate,a.status,a.type,a.notes].map(v=>`"${(v||'').replace(/"/g,'""')}"`));
+  const headers = ['Sr No','Name of Activity','Owner','Initiative','Start Date','End Date','Status','Type','Meeting Date','Notes'];
+  const rows = activities.map((a,i)=>[i+1,a.name,a.owner,a.initiative,a.startDate,a.endDate,a.status,a.type,a.meetingDate||'',a.notes].map(v=>`"${(v||'').replace(/"/g,'""')}"`));
   const csv = [headers.join(','),...rows.map(r=>r.join(','))].join('\n');
   const blob = new Blob([csv],{type:'text/csv'});
   const url = URL.createObjectURL(blob);
@@ -886,6 +1058,64 @@ function exportCSV() {
   a.href=url; a.download=`LD_Tracker_${new Date().toISOString().slice(0,10)}.csv`; a.click();
   URL.revokeObjectURL(url);
   showToast('⬇️ CSV exported!','success');
+}
+
+/* ── 17b. SUB-ACTIVITY MODAL ── */
+function openSubActivityModal(actId) {
+  const act = activities.find(a=>a.id===actId);
+  if (!act) return;
+  const existing = (act.subActivities||[]).map((s,i)=>`
+    <div class="sub-act-item">
+      <span>${esc(s.name)}</span>
+      <span class="badge ${badgeClass(s.status||'Not Started')}">${s.status||'Not Started'}</span>
+      <button class="btn btn-sm btn-danger" onclick="deleteSubActivity(${actId},${i})">🗑️</button>
+    </div>`).join('');
+  const modal = document.createElement('div');
+  modal.className='modal-overlay open'; modal.id='sub-modal-overlay';
+  modal.innerHTML=`
+  <div class="modal" style="max-width:500px">
+    <div class="modal-title">📌 Sub-Activities — ${esc(act.name)}</div>
+    <div id="sub-list" style="margin-bottom:16px">${existing||'<p style="color:var(--text-muted);font-size:13px">No sub-activities yet.</p>'}</div>
+    <div class="form-grid">
+      <div class="form-group full"><label class="form-label">Sub-Activity Name *</label>
+        <input type="text" id="sub-name" placeholder="e.g. Prepare slides" /></div>
+      <div class="form-group"><label class="form-label">Status</label>
+        <select id="sub-status">
+          <option>Not Started</option><option>In Progress</option><option>Completed</option>
+        </select></div>
+      <div class="form-group"><label class="form-label">Owner</label>
+        <input type="text" id="sub-owner" placeholder="${esc(act.owner)}" value="${esc(act.owner)}" /></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="document.getElementById('sub-modal-overlay').remove()">Close</button>
+      <button class="btn btn-primary" onclick="saveSubActivity(${actId})">➕ Add Sub-Activity</button>
+    </div>
+  </div>`;
+  modal.addEventListener('click', e=>{ if(e.target===modal) modal.remove(); });
+  document.body.appendChild(modal);
+}
+
+function saveSubActivity(actId) {
+  const name  = document.getElementById('sub-name').value.trim();
+  const status= document.getElementById('sub-status').value;
+  const owner = document.getElementById('sub-owner').value.trim();
+  if (!name) { showToast('⚠️ Enter sub-activity name.','error'); return; }
+  const act = activities.find(a=>a.id===actId);
+  if (!act) return;
+  if (!act.subActivities) act.subActivities=[];
+  act.subActivities.push({name,status,owner});
+  saveData(); renderAll();
+  document.getElementById('sub-modal-overlay')?.remove();
+  showToast('📌 Sub-activity added!','success');
+}
+
+function deleteSubActivity(actId, idx) {
+  const act = activities.find(a=>a.id===actId);
+  if (!act||!act.subActivities) return;
+  act.subActivities.splice(idx,1);
+  saveData(); renderAll();
+  document.getElementById('sub-modal-overlay')?.remove();
+  showToast('🗑️ Sub-activity removed.','info');
 }
 
 /* ── 17. TOAST ── */
