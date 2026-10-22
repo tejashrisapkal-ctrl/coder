@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>L&D Activity Tracker | Learning & Development</title>
   <meta name="description" content="Automated Learning & Development tracker for managing trainings, certifications, initiatives, and Google learnings." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
@@ -13,7 +15,16 @@
 <!-- ══════════ SIDEBAR ══════════ -->
 <aside class="sidebar" id="sidebar">
   <div class="sidebar-logo">
-    <div class="logo-icon">🎓</div>
+    <div class="logo-icon">
+      <svg width="26" height="26" viewBox="0 0 26 26" fill="none">
+        <path d="M4 3C4 1.9 4.9 1 6 1H17L22 6V23C22 24.1 21.1 25 20 25H6C4.9 25 4 24.1 4 23V3Z" fill="white" opacity="0.9"/>
+        <path d="M17 1L22 6H17V1Z" fill="white" opacity="0.6"/>
+        <path d="M8 11H18M8 14H16M8 17H14" stroke="#30496d" stroke-width="1.5" stroke-linecap="round"/>
+        <circle cx="19" cy="19" r="6" fill="#f46262"/>
+        <path d="M17 19H21M19 17V21" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+        <circle cx="19" cy="16" r="1.5" fill="white" opacity="0.6"/>
+      </svg>
+    </div>
     <div class="logo-title">L&D Tracker</div>
     <div class="logo-subtitle">Learning &amp; Development</div>
   </div>
@@ -33,6 +44,9 @@
       <span class="nav-icon">🎯</span> Initiatives
       <span class="nav-badge" id="nav-badge-initiatives">18</span>
     </div>
+    <div class="nav-item" data-page="calendar" onclick="navigate('calendar')">
+      <span class="nav-icon">📅</span> Calendar
+    </div>
     <div class="nav-item" data-page="gantt" onclick="navigate('gantt')">
       <span class="nav-icon">🗓️</span> Timeline
     </div>
@@ -44,17 +58,17 @@
     </div>
     <div class="nav-item" onclick="quickFilter('status','In Progress')">
       <span class="nav-icon">🔄</span> In Progress
-      <span class="nav-badge" id="qf-inprogress" style="background:#6C63FF">0</span>
+      <span class="nav-badge" id="qf-inprogress" style="background:#30496d">0</span>
     </div>
     <div class="nav-item" onclick="quickFilter('status','On Going')">
       <span class="nav-icon">🔵</span> On Going
-      <span class="nav-badge" id="qf-ongoing" style="background:#FFB347">0</span>
+      <span class="nav-badge" id="qf-ongoing" style="background:#f46262">0</span>
     </div>
   </nav>
 
   <div class="sidebar-footer">
     <div class="date-display" id="sidebar-date"></div>
-    <div>L&amp;D Team Tracker v1.0</div>
+    <div>L&amp;D Team Tracker v2.0</div>
   </div>
 </aside>
 
@@ -77,13 +91,14 @@
         <img src="https://www.gstatic.com/images/branding/product/1x/sheets_2020q4_32dp.png" alt="" style="width:16px;height:16px;vertical-align:middle" />
         Open in Sheets
       </button>
+      <button class="btn btn-share" onclick="openShareModal()">📤 Share</button>
       <button class="btn btn-primary" onclick="openModal()">＋ Add Activity</button>
     </div>
   </header>
 
   <!-- ══ PAGE: DASHBOARD ══ -->
   <section class="page active" id="page-dashboard">
-    <div class="stats-grid" id="stats-grid"></div>
+    <div class="stats-strip" id="stats-strip"></div>
 
     <div class="charts-grid">
       <div class="chart-card">
@@ -174,6 +189,7 @@
     <div class="section-header">
       <div class="section-title">🎯 Core L&D Initiatives</div>
       <div class="section-actions">
+        <button class="btn btn-primary btn-sm" onclick="openInitiativeModal()">＋ Add Core Initiative</button>
         <select id="filter-init-category" onchange="renderInitiatives()">
           <option value="">All Categories</option>
           <option>I&D Team</option>
@@ -186,6 +202,21 @@
       </div>
     </div>
     <div class="initiatives-grid" id="initiatives-grid"></div>
+  </section>
+
+  <!-- ══ PAGE: CALENDAR ══ -->
+  <section class="page" id="page-calendar">
+    <div class="section-header">
+      <div class="section-title">📅 Task Calendar</div>
+      <div class="section-actions">
+        <button class="btn btn-secondary btn-sm" onclick="calPrev()">◀ Prev</button>
+        <span class="cal-month-label" id="cal-month-label"></span>
+        <button class="btn btn-secondary btn-sm" onclick="calNext()">Next ▶</button>
+        <button class="btn btn-secondary btn-sm" onclick="calToday()">Today</button>
+      </div>
+    </div>
+    <div class="cal-grid" id="cal-grid"></div>
+    <div class="cal-day-detail" id="cal-day-detail" style="display:none"></div>
   </section>
 
   <!-- ══ PAGE: GANTT ══ -->
@@ -224,16 +255,13 @@
           <input type="text" id="f-name" required placeholder="e.g. AI Fluency Training" />
         </div>
         <div class="form-group">
-          <label class="form-label">Owner *</label>
-          <select id="f-owner" required>
-            <option value="">Select owner</option>
-            <option>Tanaya</option>
-            <option>Nikhil</option>
-            <option>Deepraj</option>
-            <option>Tanaya/Deepraj</option>
-            <option>Tanaya/Nikhil</option>
-            <option>Team</option>
-          </select>
+          <label class="form-label">Owner * (select one or more)</label>
+          <div class="owner-checkboxes" id="f-owner-checkboxes">
+            <label class="owner-cb"><input type="checkbox" name="f-owner" value="Tejashri" /> Tejashri</label>
+            <label class="owner-cb"><input type="checkbox" name="f-owner" value="Tanaya" /> Tanaya</label>
+            <label class="owner-cb"><input type="checkbox" name="f-owner" value="Nikhil" /> Nikhil</label>
+            <label class="owner-cb"><input type="checkbox" name="f-owner" value="Deepraj" /> Deepraj</label>
+          </div>
         </div>
         <div class="form-group">
           <label class="form-label">Status *</label>
@@ -273,12 +301,83 @@
           <label class="form-label">Notes</label>
           <textarea id="f-notes" placeholder="Any additional notes or context…"></textarea>
         </div>
+        <!-- Sub-activities section -->
+        <div class="form-group full" id="subactivities-section" style="display:none">
+          <label class="form-label">Sub-Activities</label>
+          <div id="subactivities-list"></div>
+          <button type="button" class="btn btn-secondary btn-sm" onclick="addSubActivityRow()" style="margin-top:8px">＋ Add Sub-activity</button>
+        </div>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
         <button type="submit" class="btn btn-primary" id="modal-save-btn">Save Activity</button>
       </div>
     </form>
+  </div>
+</div>
+
+<!-- ══════════ ADD INITIATIVE MODAL ══════════ -->
+<div class="modal-overlay" id="init-modal-overlay" onclick="onInitOverlayClick(event)">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-title">🎯 Add Core Initiative</div>
+    <form id="init-form" onsubmit="saveInitiative(event)">
+      <div class="form-grid">
+        <div class="form-group full">
+          <label class="form-label">Initiative Name *</label>
+          <input type="text" id="fi-name" required placeholder="e.g. Cloud Training Program" />
+        </div>
+        <div class="form-group full">
+          <label class="form-label">Category *</label>
+          <select id="fi-category" required>
+            <option value="">Select category</option>
+            <option>I&D Team</option>
+            <option>Tool & Platform</option>
+            <option>Org Competency</option>
+            <option>AI Adoption</option>
+            <option>Compliance</option>
+            <option>Other</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeInitiativeModal()">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save Initiative</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ══════════ SHARE MODAL ══════════ -->
+<div class="modal-overlay" id="share-modal-overlay" onclick="onShareOverlayClick(event)">
+  <div class="modal" style="max-width:540px">
+    <div class="modal-title">📤 Share Task Sheet</div>
+    <p style="color:var(--text-secondary);font-size:13px;margin-bottom:16px">
+      Share this tracker with your L&D team members. An email will open with the link pre-filled.
+    </p>
+    <div class="form-group" style="margin-bottom:12px">
+      <label class="form-label">Team Emails</label>
+      <div class="share-email-chips" id="share-email-chips">
+        <span class="email-chip" data-email="tejashri.sapkal@onixnet.com">tejashri.sapkal@onixnet.com <button onclick="removeEmailChip(this)">×</button></span>
+        <span class="email-chip" data-email="tanaya.sankapal@onixnet.com">tanaya.sankapal@onixnet.com <button onclick="removeEmailChip(this)">×</button></span>
+        <span class="email-chip" data-email="nikhil.shelke@onixnet.com">nikhil.shelke@onixnet.com <button onclick="removeEmailChip(this)">×</button></span>
+        <span class="email-chip" data-email="deepraj.bhosale@onixnet.com">deepraj.bhosale@onixnet.com <button onclick="removeEmailChip(this)">×</button></span>
+      </div>
+      <div style="display:flex;gap:6px;margin-top:8px">
+        <input type="email" id="share-email-input" placeholder="Add another email…" style="flex:1" />
+        <button type="button" class="btn btn-secondary btn-sm" onclick="addEmailChip()">Add</button>
+      </div>
+    </div>
+    <div class="form-group" style="margin-bottom:16px">
+      <label class="form-label">Shareable Link</label>
+      <div style="display:flex;gap:6px">
+        <input type="text" id="share-link" readonly value="" style="flex:1;font-size:11px" />
+        <button type="button" class="btn btn-secondary btn-sm" onclick="copyShareLink()">📋 Copy</button>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" onclick="closeShareModal()">Close</button>
+      <button type="button" class="btn btn-primary" onclick="sendShareEmail()">📧 Send Email</button>
+    </div>
   </div>
 </div>
 
@@ -326,9 +425,9 @@
       💡 <strong>Pro tip:</strong> To keep Google Sheets always in sync, click <strong>"Export CSV"</strong> from this tracker whenever you make changes, then re-import into Sheets. Or ask your IT team to set up a Google Apps Script for automatic sync!
     </div>
     <div class="sheets-actions">
-      <a href="https://sheets.new" target="_blank" class="sheets-link">
+      <a href="https://docs.google.com/spreadsheets/d/1B5cI9UpRKemHf7OnwanVR9Lz-JUIpjwgVLgUOVIk6qY/edit?gid=2050775428#gid=2050775428" target="_blank" class="sheets-link">
         <img src="https://www.gstatic.com/images/branding/product/1x/sheets_2020q4_32dp.png" alt="" style="width:18px;height:18px" />
-        Open Google Sheets →
+        Open Google Sheet →
       </a>
       <button class="btn btn-secondary" onclick="closeSheetsModal()">Close</button>
     </div>

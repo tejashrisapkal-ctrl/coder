@@ -1,6 +1,7 @@
 /* ═══════════════════════════════════════════════════
-   L&D TRACKER — APP LOGIC
-   Data · CRUD · Charts · Filters · LocalStorage · Gantt
+   L&D TRACKER v2.0 — APP LOGIC
+   Data · CRUD · Charts · Filters · LocalStorage
+   Calendar · Gantt · Sub-activities · Share · Reminders
    ═══════════════════════════════════════════════════ */
 
 'use strict';
@@ -9,7 +10,7 @@
    1. MASTER DATA
 ────────────────────────────────────────── */
 
-const INITIATIVES = [
+let INITIATIVES = [
   { id: 1,  name: 'ISMS/POSH/L100',                       category: 'Compliance' },
   { id: 2,  name: 'Udemy / Learnrush',                    category: 'Tool & Platform' },
   { id: 3,  name: 'DRI/DRP/PNH',                          category: 'Other' },
@@ -31,27 +32,38 @@ const INITIATIVES = [
 ];
 
 const DEFAULT_ACTIVITIES = [
-  { id: 1,  name: 'L&D Health Tracker Update',              owner: 'Tanaya',         startDate: '2026-04-03', endDate: '',           status: 'On Going',    type: 'Monthly',       initiative: 'Other',   notes: '' },
-  { id: 2,  name: 'Google Policy Update Flyer',             owner: 'Tanaya/Deepraj', startDate: '2026-04-03', endDate: '',           status: 'In Progress', type: '',              initiative: 'Google Ecosystem', notes: '' },
-  { id: 3,  name: 'LIA Icon',                               owner: 'Tanaya',         startDate: '',           endDate: '',           status: 'Completed',   type: '',              initiative: 'LIA',     notes: '' },
-  { id: 4,  name: 'LIA Betterment/Testing',                 owner: 'Tanaya',         startDate: '2026-04-03', endDate: '',           status: 'In Progress', type: '',              initiative: 'LIA',     notes: '' },
-  { id: 5,  name: 'AI Fluency Sales',                       owner: 'Tanaya',         startDate: '2026-04-03', endDate: '2026-12-31', status: 'In Progress', type: 'Till Dec 2026', initiative: 'Ignite AI (AI Delivery/Sales/Product)', notes: '' },
-  { id: 6,  name: 'PNH, PA',                                owner: 'Tanaya',         startDate: '2026-04-03', endDate: '',           status: 'On Going',    type: '',              initiative: 'DRI/DRP/PNH', notes: '' },
-  { id: 7,  name: 'Expired Cert Reminder Email',            owner: 'Tanaya',         startDate: '2026-04-03', endDate: '',           status: 'On Going',    type: 'Monthly',       initiative: 'Professional Certifications', notes: '' },
-  { id: 8,  name: 'AI Fluency Delivery',                    owner: 'Tanaya/Deepraj', startDate: '2026-04-03', endDate: '2026-12-31', status: 'In Progress', type: 'Till Dec 2026', initiative: 'Ignite AI (AI Delivery/Sales/Product)', notes: '' },
-  { id: 9,  name: 'L&D Dashboard Data Management & Tracking', owner: 'Nikhil',       startDate: '2026-04-03', endDate: '',           status: 'On Going',    type: 'Monthly',       initiative: 'Other',   notes: '' },
-  { id: 10, name: 'Professional Edge Training Preparation', owner: 'Nikhil',         startDate: '2026-04-03', endDate: '2026-04-27', status: 'In Progress', type: '',              initiative: 'Professional Certifications', notes: '' },
-  { id: 11, name: 'ISMS Compliance Training',               owner: 'Tanaya',         startDate: '2026-04-15', endDate: '2026-06-30', status: 'On Going',    type: 'Quarterly',     initiative: 'ISMS/POSH/L100', notes: 'Annual compliance requirement' },
-  { id: 12, name: 'Gemini Certification Drive - Cohort 1',  owner: 'Nikhil',         startDate: '2026-05-01', endDate: '2026-07-31', status: 'Not Started', type: 'Till Dec 2026', initiative: 'Gemini Enterprise Certification Drive', notes: '' },
-  { id: 13, name: 'Udemy License Management',               owner: 'Tanaya/Deepraj', startDate: '2026-04-01', endDate: '',           status: 'On Going',    type: 'Monthly',       initiative: 'Udemy / Learnrush', notes: 'Monthly license renewal tracking' },
-  { id: 14, name: 'Summer Internship Onboarding Program',   owner: 'Nikhil',         startDate: '2026-05-15', endDate: '2026-08-15', status: 'Not Started', type: 'One-time',      initiative: 'Summer Internship', notes: '' },
-  { id: 15, name: 'Leadership Training - Batch 2',          owner: 'Tanaya',         startDate: '2026-06-01', endDate: '2026-09-30', status: 'Not Started', type: '',              initiative: 'Leadership Training', notes: '' },
-  { id: 16, name: 'Fresher Batch Induction',                owner: 'Nikhil',         startDate: '2026-04-20', endDate: '2026-05-20', status: 'In Progress', type: 'One-time',      initiative: 'Fresher Internship Training', notes: '' },
-  { id: 17, name: 'AI Fluency for PE - Module 1',           owner: 'Tanaya/Deepraj', startDate: '2026-04-10', endDate: '2026-12-31', status: 'In Progress', type: 'Till Dec 2026', initiative: 'AI Fluency for PE', notes: '' },
-  { id: 18, name: 'Priority Plays Session - Q2',            owner: 'Tanaya',         startDate: '2026-04-15', endDate: '2026-06-15', status: 'On Going',    type: 'Quarterly',     initiative: 'Priority Plays', notes: '' },
-  { id: 19, name: 'Silver/Gold Bench Program Refresh',      owner: 'Nikhil',         startDate: '2026-05-01', endDate: '2026-10-31', status: 'Not Started', type: '',              initiative: 'Silver/Gold - Project and Bench', notes: '' },
-  { id: 20, name: 'AI Hackathon Preparation',               owner: 'Tanaya/Deepraj', startDate: '2026-06-01', endDate: '2026-07-31', status: 'Not Started', type: 'One-time',      initiative: 'AI Hackathon', notes: '' },
+  { id: 1,  name: 'L&D Health Tracker Update',              owner: 'Tanaya',         startDate: '2026-04-03', endDate: '',           status: 'On Going',    type: 'Monthly',       initiative: 'Other',   notes: '', subActivities: [] },
+  { id: 2,  name: 'Google Policy Update Flyer',             owner: 'Tanaya/Deepraj', startDate: '2026-04-03', endDate: '',           status: 'In Progress', type: '',              initiative: 'Google Ecosystem', notes: '', subActivities: [] },
+  { id: 3,  name: 'LIA Icon',                               owner: 'Tanaya',         startDate: '',           endDate: '',           status: 'Completed',   type: '',              initiative: 'LIA',     notes: '', subActivities: [] },
+  { id: 4,  name: 'LIA Betterment/Testing',                 owner: 'Tanaya',         startDate: '2026-04-03', endDate: '',           status: 'In Progress', type: '',              initiative: 'LIA',     notes: '', subActivities: [] },
+  { id: 5,  name: 'AI Fluency Sales',                       owner: 'Tanaya',         startDate: '2026-04-03', endDate: '2026-12-31', status: 'In Progress', type: 'Till Dec 2026', initiative: 'Ignite AI (AI Delivery/Sales/Product)', notes: '', subActivities: [] },
+  { id: 6,  name: 'PNH, PA',                                owner: 'Tanaya',         startDate: '2026-04-03', endDate: '',           status: 'On Going',    type: '',              initiative: 'DRI/DRP/PNH', notes: '', subActivities: [] },
+  { id: 7,  name: 'Expired Cert Reminder Email',            owner: 'Tanaya',         startDate: '2026-04-03', endDate: '',           status: 'On Going',    type: 'Monthly',       initiative: 'Professional Certifications', notes: '', subActivities: [] },
+  { id: 8,  name: 'AI Fluency Delivery',                    owner: 'Tanaya/Deepraj', startDate: '2026-04-03', endDate: '2026-12-31', status: 'In Progress', type: 'Till Dec 2026', initiative: 'Ignite AI (AI Delivery/Sales/Product)', notes: '', subActivities: [] },
+  { id: 9,  name: 'L&D Dashboard Data Management & Tracking', owner: 'Nikhil',       startDate: '2026-04-03', endDate: '',           status: 'On Going',    type: 'Monthly',       initiative: 'Other',   notes: '', subActivities: [] },
+  { id: 10, name: 'Professional Edge Training Preparation', owner: 'Nikhil',         startDate: '2026-04-03', endDate: '2026-04-27', status: 'In Progress', type: '',              initiative: 'Professional Certifications', notes: '', subActivities: [] },
+  { id: 11, name: 'ISMS Compliance Training',               owner: 'Tejashri',       startDate: '2026-04-15', endDate: '2026-06-30', status: 'On Going',    type: 'Quarterly',     initiative: 'ISMS/POSH/L100', notes: 'Annual compliance requirement', subActivities: [] },
+  { id: 12, name: 'Gemini Certification Drive - Cohort 1',  owner: 'Nikhil',         startDate: '2026-05-01', endDate: '2026-07-31', status: 'Not Started', type: 'Till Dec 2026', initiative: 'Gemini Enterprise Certification Drive', notes: '', subActivities: [] },
+  { id: 13, name: 'Udemy License Management',               owner: 'Tanaya/Deepraj', startDate: '2026-04-01', endDate: '',           status: 'On Going',    type: 'Monthly',       initiative: 'Udemy / Learnrush', notes: 'Monthly license renewal tracking', subActivities: [] },
+  { id: 14, name: 'Summer Internship Onboarding Program',   owner: 'Nikhil',         startDate: '2026-05-15', endDate: '2026-08-15', status: 'Not Started', type: 'One-time',      initiative: 'Summer Internship', notes: '', subActivities: [] },
+  { id: 15, name: 'Leadership Training - Batch 2',          owner: 'Tejashri/Tanaya',startDate: '2026-06-01', endDate: '2026-09-30', status: 'Not Started', type: '',              initiative: 'Leadership Training', notes: '', subActivities: [] },
+  { id: 16, name: 'Fresher Batch Induction',                owner: 'Nikhil',         startDate: '2026-04-20', endDate: '2026-05-20', status: 'In Progress', type: 'One-time',      initiative: 'Fresher Internship Training', notes: '', subActivities: [] },
+  { id: 17, name: 'AI Fluency for PE - Module 1',           owner: 'Tanaya/Deepraj', startDate: '2026-04-10', endDate: '2026-12-31', status: 'In Progress', type: 'Till Dec 2026', initiative: 'AI Fluency for PE', notes: '', subActivities: [] },
+  { id: 18, name: 'Priority Plays Session - Q2',            owner: 'Tejashri',       startDate: '2026-04-15', endDate: '2026-06-15', status: 'On Going',    type: 'Quarterly',     initiative: 'Priority Plays', notes: '', subActivities: [] },
+  { id: 19, name: 'Silver/Gold Bench Program Refresh',      owner: 'Nikhil',         startDate: '2026-05-01', endDate: '2026-10-31', status: 'Not Started', type: '',              initiative: 'Silver/Gold - Project and Bench', notes: '', subActivities: [] },
+  { id: 20, name: 'AI Hackathon Preparation',               owner: 'Deepraj',        startDate: '2026-06-01', endDate: '2026-07-31', status: 'Not Started', type: 'One-time',      initiative: 'AI Hackathon', notes: '', subActivities: [] },
 ];
+
+const TEAM_EMAILS = [
+  'tejashri.sapkal@onixnet.com',
+  'tanaya.sankapal@onixnet.com',
+  'nikhil.shelke@onixnet.com',
+  'deepraj.bhosale@onixnet.com',
+];
+
+const OWNERS = ['Tejashri', 'Tanaya', 'Nikhil', 'Deepraj'];
+
+const GOOGLE_SHEET_URL = 'https://docs.google.com/spreadsheets/d/1B5cI9UpRKemHf7OnwanVR9Lz-JUIpjwgVLgUOVIk6qY/edit?gid=2050775428#gid=2050775428';
 
 /* ──────────────────────────────────────────
    2. STATE
@@ -64,6 +76,8 @@ let sortCol = 'id';
 let sortDir = 1;
 let searchQuery = '';
 let chartStatus, chartOwner, chartType;
+let calYear = 2026;
+let calMonth = new Date().getMonth(); // 0-indexed
 
 /* ──────────────────────────────────────────
    3. INIT
@@ -71,36 +85,62 @@ let chartStatus, chartOwner, chartType;
 
 document.addEventListener('DOMContentLoaded', () => {
   loadData();
+  loadInitiatives();
   populateDropdowns();
   updateSidebarDate();
   renderAll();
   setInterval(updateSidebarDate, 60000);
+  checkReminders();
+  setInterval(checkReminders, 3600000); // check every hour
+  requestNotificationPermission();
 });
 
 function loadData() {
-  const stored = localStorage.getItem('ld_tracker_activities');
+  const stored = localStorage.getItem('ld_tracker_activities_v2');
   if (stored) {
     try {
       activities = JSON.parse(stored);
+      activities.forEach(a => { if (!a.subActivities) a.subActivities = []; });
       nextId = activities.length ? Math.max(...activities.map(a => a.id)) + 1 : 1;
-    } catch { activities = [...DEFAULT_ACTIVITIES]; }
+    } catch { activities = DEFAULT_ACTIVITIES.map(a => ({...a})); }
   } else {
-    activities = [...DEFAULT_ACTIVITIES];
+    activities = DEFAULT_ACTIVITIES.map(a => ({...a, subActivities: [...(a.subActivities || [])]}));
+  }
+}
+
+function loadInitiatives() {
+  const stored = localStorage.getItem('ld_tracker_initiatives_v2');
+  if (stored) {
+    try { INITIATIVES = JSON.parse(stored); } catch {}
   }
 }
 
 function saveData() {
-  localStorage.setItem('ld_tracker_activities', JSON.stringify(activities));
+  localStorage.setItem('ld_tracker_activities_v2', JSON.stringify(activities));
+}
+
+function saveInitiatives() {
+  localStorage.setItem('ld_tracker_initiatives_v2', JSON.stringify(INITIATIVES));
 }
 
 function populateDropdowns() {
-  // Owner filter
-  const owners = [...new Set(DEFAULT_ACTIVITIES.map(a => a.owner))].sort();
+  const allOwners = [...new Set(activities.map(a => a.owner))].sort();
   const fOwner = document.getElementById('filter-owner');
   const ganttOwner = document.getElementById('gantt-filter-owner');
-  owners.forEach(o => {
-    fOwner.innerHTML += `<option>${o}</option>`;
-    ganttOwner.innerHTML += `<option>${o}</option>`;
+
+  // Add individual owners
+  OWNERS.forEach(o => {
+    if (!fOwner.querySelector(`option[value="${o}"]`)) {
+      fOwner.innerHTML += `<option>${o}</option>`;
+      ganttOwner.innerHTML += `<option>${o}</option>`;
+    }
+  });
+  // Add combo owners
+  allOwners.forEach(o => {
+    if (!OWNERS.includes(o) && !fOwner.querySelector(`option[value="${o}"]`)) {
+      fOwner.innerHTML += `<option>${o}</option>`;
+      ganttOwner.innerHTML += `<option>${o}</option>`;
+    }
   });
 
   // Initiative dropdowns
@@ -126,6 +166,7 @@ const PAGE_META = {
   dashboard:   { title: 'Dashboard',    subtitle: 'Overview of all L&D activities and initiatives' },
   activities:  { title: 'Activities',   subtitle: 'Manage and track all L&D activities' },
   initiatives: { title: 'Initiatives',  subtitle: 'Core L&D initiatives and their progress' },
+  calendar:    { title: 'Calendar',     subtitle: 'Monthly calendar view of tasks' },
   gantt:       { title: 'Timeline',     subtitle: 'Visual Gantt chart — Apr to Dec 2026' },
 };
 
@@ -143,6 +184,7 @@ function navigate(page) {
   if (page === 'gantt') renderGantt();
   if (page === 'initiatives') renderInitiatives();
   if (page === 'dashboard') renderDashboard();
+  if (page === 'calendar') renderCalendar();
 }
 
 function quickFilter(field, value) {
@@ -163,6 +205,7 @@ function renderAll() {
 
 function renderSideBadges() {
   document.getElementById('nav-badge-activities').textContent = activities.length;
+  document.getElementById('nav-badge-initiatives').textContent = INITIATIVES.length;
   document.getElementById('qf-completed').textContent = activities.filter(a => a.status === 'Completed').length;
   document.getElementById('qf-inprogress').textContent = activities.filter(a => a.status === 'In Progress').length;
   document.getElementById('qf-ongoing').textContent = activities.filter(a => a.status === 'On Going').length;
@@ -173,12 +216,12 @@ function renderSideBadges() {
 ────────────────────────────────────────── */
 
 function renderDashboard() {
-  renderStatsCards();
+  renderStatsStrip();
   renderCharts();
   renderRecentList();
 }
 
-function renderStatsCards() {
+function renderStatsStrip() {
   const total = activities.length;
   const completed = activities.filter(a => a.status === 'Completed').length;
   const inprogress = activities.filter(a => a.status === 'In Progress').length;
@@ -186,18 +229,28 @@ function renderStatsCards() {
   const notStarted = activities.filter(a => a.status === 'Not Started').length;
   const pct = total ? Math.round((completed / total) * 100) : 0;
 
-  const cards = [
-    { icon: '📋', value: total,      label: 'Total Activities', sub: `Across ${INITIATIVES.length} initiatives`,         accent: '#6C63FF', iconBg: 'rgba(108,99,255,0.12)' },
-    { icon: '✅', value: completed,  label: 'Completed',        sub: `${pct}% completion rate`,                         accent: '#00C896', iconBg: 'rgba(0,200,150,0.12)' },
-    { icon: '🔄', value: inprogress, label: 'In Progress',      sub: `${ongoing} on going`,                             accent: '#6C63FF', iconBg: 'rgba(108,99,255,0.12)' },
-    { icon: '🔵', value: ongoing,    label: 'On Going',         sub: 'Active recurring work',                            accent: '#FFB347', iconBg: 'rgba(255,179,71,0.12)' },
-    { icon: '⏳', value: notStarted, label: 'Not Started',      sub: 'Yet to begin',                                     accent: '#8B97A8', iconBg: 'rgba(139,151,168,0.12)' },
-    { icon: '🎯', value: INITIATIVES.length, label: 'Initiatives', sub: 'Core L&D programmes',                          accent: '#00D4AA', iconBg: 'rgba(0,212,170,0.12)' },
+  // Owner breakdown for total
+  const ownerBreakdown = {};
+  OWNERS.forEach(o => { ownerBreakdown[o] = 0; });
+  activities.forEach(a => {
+    const parts = a.owner.split('/');
+    parts.forEach(p => {
+      const name = p.trim();
+      if (ownerBreakdown[name] !== undefined) ownerBreakdown[name]++;
+    });
+  });
+  const ownerText = OWNERS.map(o => `${o.substring(0,3)}: ${ownerBreakdown[o]}`).join(' · ');
+
+  const cells = [
+    { value: total,      label: 'Total Activities', sub: ownerText,             accent: '#30496d' },
+    { value: completed,  label: 'Completed',        sub: `${pct}% done`,        accent: '#00C896' },
+    { value: inprogress, label: 'In Progress',      sub: `Active work`,         accent: '#30496d' },
+    { value: ongoing,    label: 'On Going',         sub: 'Recurring',           accent: '#f46262' },
+    { value: notStarted, label: 'Not Started',      sub: 'Yet to begin',        accent: '#8B97A8' },
   ];
 
-  document.getElementById('stats-grid').innerHTML = cards.map(c => `
-    <div class="stat-card" style="--card-accent:${c.accent};--card-bg-icon:${c.iconBg}">
-      <div class="stat-icon">${c.icon}</div>
+  document.getElementById('stats-strip').innerHTML = cells.map(c => `
+    <div class="stat-cell" style="--cell-accent:${c.accent}">
       <div class="stat-value">${c.value}</div>
       <div class="stat-label">${c.label}</div>
       <div class="stat-sub">${c.sub}</div>
@@ -208,7 +261,7 @@ function renderStatsCards() {
 function getChartColors(isDark) {
   return {
     text: isDark ? '#9BA3C8' : '#5A6178',
-    grid: isDark ? 'rgba(108,99,255,0.1)' : 'rgba(108,99,255,0.08)',
+    grid: isDark ? 'rgba(48,73,109,0.1)' : 'rgba(48,73,109,0.08)',
   };
 }
 
@@ -219,6 +272,7 @@ function isDarkMode() {
 function renderCharts() {
   const dark = isDarkMode();
   const colors = getChartColors(dark);
+  const fontCfg = { family: 'Plus Jakarta Sans', size: 11 };
 
   const statusCounts = {
     'Completed':   activities.filter(a => a.status === 'Completed').length,
@@ -227,8 +281,20 @@ function renderCharts() {
     'Not Started': activities.filter(a => a.status === 'Not Started').length,
   };
 
-  const ownerMap = {};
-  activities.forEach(a => { ownerMap[a.owner] = (ownerMap[a.owner] || 0) + 1; });
+  // Owner map with status breakdown
+  const ownerStatusMap = {};
+  OWNERS.forEach(o => { ownerStatusMap[o] = { total: 0, completed: 0, pending: 0 }; });
+  activities.forEach(a => {
+    const parts = a.owner.split('/');
+    parts.forEach(p => {
+      const name = p.trim();
+      if (ownerStatusMap[name]) {
+        ownerStatusMap[name].total++;
+        if (a.status === 'Completed') ownerStatusMap[name].completed++;
+        else ownerStatusMap[name].pending++;
+      }
+    });
+  });
 
   const typeMap = {};
   activities.forEach(a => {
@@ -236,7 +302,7 @@ function renderCharts() {
     typeMap[t] = (typeMap[t] || 0) + 1;
   });
 
-  const defaultPlugin = { legend: { labels: { color: colors.text, font: { family: 'Inter', size: 12 } } } };
+  const defaultPlugin = { legend: { labels: { color: colors.text, font: fontCfg } } };
 
   // Status Doughnut
   if (chartStatus) chartStatus.destroy();
@@ -246,7 +312,7 @@ function renderCharts() {
       labels: Object.keys(statusCounts),
       datasets: [{
         data: Object.values(statusCounts),
-        backgroundColor: ['#00C896','#6C63FF','#FFB347','#8B97A8'],
+        backgroundColor: ['#00C896','#30496d','#f46262','#8B97A8'],
         borderWidth: 2,
         borderColor: dark ? '#13152A' : '#FFFFFF',
         hoverOffset: 8,
@@ -261,25 +327,43 @@ function renderCharts() {
     }
   });
 
-  // Owner Bar
+  // Owner Stacked Bar with labels
   if (chartOwner) chartOwner.destroy();
+  const ownerLabels = Object.keys(ownerStatusMap);
   chartOwner = new Chart(document.getElementById('chart-owner'), {
     type: 'bar',
     data: {
-      labels: Object.keys(ownerMap),
-      datasets: [{
-        label: 'Activities',
-        data: Object.values(ownerMap),
-        backgroundColor: ['rgba(108,99,255,0.7)','rgba(0,212,170,0.7)','rgba(255,107,107,0.7)','rgba(255,179,71,0.7)','rgba(78,205,196,0.7)','rgba(108,99,255,0.4)'],
-        borderRadius: 8, borderSkipped: false,
-      }]
+      labels: ownerLabels,
+      datasets: [
+        {
+          label: 'Completed',
+          data: ownerLabels.map(o => ownerStatusMap[o].completed),
+          backgroundColor: '#00C896',
+          borderRadius: 4, borderSkipped: false,
+        },
+        {
+          label: 'Pending',
+          data: ownerLabels.map(o => ownerStatusMap[o].pending),
+          backgroundColor: '#f46262',
+          borderRadius: 4, borderSkipped: false,
+        },
+      ]
     },
     options: {
       responsive: true, maintainAspectRatio: true,
-      plugins: { ...defaultPlugin, legend: { display: false } },
+      plugins: {
+        ...defaultPlugin,
+        legend: { display: true, labels: { color: colors.text, font: fontCfg, usePointStyle: true, pointStyle: 'circle' } },
+        tooltip: { callbacks: {
+          afterBody: (tooltipItems) => {
+            const owner = tooltipItems[0].label;
+            return `Total: ${ownerStatusMap[owner].total}`;
+          }
+        }},
+      },
       scales: {
-        x: { ticks: { color: colors.text, font: { family: 'Inter', size: 11 } }, grid: { color: colors.grid } },
-        y: { ticks: { color: colors.text, font: { family: 'Inter', size: 11 }, stepSize: 1 }, grid: { color: colors.grid }, beginAtZero: true },
+        x: { stacked: true, ticks: { color: colors.text, font: fontCfg }, grid: { color: colors.grid } },
+        y: { stacked: true, ticks: { color: colors.text, font: fontCfg, stepSize: 1 }, grid: { color: colors.grid }, beginAtZero: true },
       }
     }
   });
@@ -293,8 +377,8 @@ function renderCharts() {
       datasets: [{
         label: 'Count',
         data: Object.values(typeMap),
-        backgroundColor: 'rgba(0,212,170,0.65)',
-        borderRadius: 8, borderSkipped: false,
+        backgroundColor: 'rgba(48,73,109,0.6)',
+        borderRadius: 6, borderSkipped: false,
       }]
     },
     options: {
@@ -302,18 +386,18 @@ function renderCharts() {
       responsive: true, maintainAspectRatio: true,
       plugins: { ...defaultPlugin, legend: { display: false } },
       scales: {
-        x: { ticks: { color: colors.text, font: { family: 'Inter', size: 11 }, stepSize: 1 }, grid: { color: colors.grid }, beginAtZero: true },
-        y: { ticks: { color: colors.text, font: { family: 'Inter', size: 11 } }, grid: { color: colors.grid } },
+        x: { ticks: { color: colors.text, font: fontCfg, stepSize: 1 }, grid: { color: colors.grid }, beginAtZero: true },
+        y: { ticks: { color: colors.text, font: fontCfg }, grid: { color: colors.grid } },
       }
     }
   });
 }
 
 function renderRecentList() {
-  const recent = [...activities].sort((a, b) => b.id - a.id).slice(0, 6);
+  const recent = [...activities].sort((a, b) => b.id - a.id).slice(0, 5);
   document.getElementById('recent-list').innerHTML = recent.map(a => `
     <div class="recent-item">
-      <span style="font-size:20px">${statusIcon(a.status)}</span>
+      <span style="font-size:18px">${statusIcon(a.status)}</span>
       <div class="recent-item-info">
         <div class="recent-item-name">${esc(a.name)}</div>
         <div class="recent-item-meta">${esc(a.owner)} · ${a.initiative || '—'} · ${a.startDate || 'TBD'}</div>
@@ -338,7 +422,7 @@ function getFiltered() {
   return activities
     .filter(a =>
       (!status || a.status === status) &&
-      (!owner  || a.owner === owner) &&
+      (!owner  || a.owner === owner || a.owner.includes(owner)) &&
       (!type   || a.type === type) &&
       (!init   || a.initiative === init) &&
       (!q      || a.name.toLowerCase().includes(q) || (a.owner||'').toLowerCase().includes(q) || (a.initiative||'').toLowerCase().includes(q))
@@ -360,40 +444,56 @@ function renderTable(rows) {
     return;
   }
 
-  tbody.innerHTML = rows.map((a, idx) => {
+  let html = '';
+  rows.forEach((a, idx) => {
     const rowClass = rowStatusClass(a.status);
     const ownerParts = a.owner.split('/');
     const ownerHtml = ownerParts.map(o => `<span class="owner-chip"><span class="owner-avatar ${avatarClass(o.trim())}">${o.trim()[0]}</span>${esc(o.trim())}</span>`).join(' ');
 
-    return `
+    html += `
     <tr class="${rowClass}" id="row-${a.id}">
       <td class="sr-num">${idx + 1}</td>
       <td class="activity-name">
         ${esc(a.name)}
-        ${a.notes ? `<small title="${esc(a.notes)}">📝 ${esc(a.notes.substring(0,40))}${a.notes.length>40?'…':''}</small>` : ''}
+        ${a.notes ? `<small title="${esc(a.notes)}">📝 ${esc(a.notes.substring(0,35))}${a.notes.length>35?'…':''}</small>` : ''}
       </td>
       <td>${ownerHtml}</td>
-      <td style="font-size:12px;color:var(--text-secondary);max-width:160px">${a.initiative ? `<span title="${esc(a.initiative)}">${esc(a.initiative.substring(0,28))}${a.initiative.length>28?'…':''}</span>` : '<span style="color:var(--text-muted)">—</span>'}</td>
-      <td style="white-space:nowrap;font-size:12px">${fmtDate(a.startDate)}</td>
-      <td style="white-space:nowrap;font-size:12px">${fmtDate(a.endDate)}</td>
+      <td style="font-size:11px;color:var(--text-secondary);max-width:150px">${a.initiative ? `<span title="${esc(a.initiative)}">${esc(a.initiative.substring(0,25))}${a.initiative.length>25?'…':''}</span>` : '<span style="color:var(--text-muted)">—</span>'}</td>
+      <td style="white-space:nowrap;font-size:11px">${fmtDate(a.startDate)}</td>
+      <td style="white-space:nowrap;font-size:11px">${fmtDate(a.endDate)}</td>
       <td><span class="badge ${badgeClass(a.status)}">${a.status}</span></td>
       <td>${a.type ? `<span class="type-tag">${esc(a.type)}</span>` : '<span style="color:var(--text-muted)">—</span>'}</td>
       <td>
         <div class="action-btns">
           <button class="btn btn-sm btn-secondary" onclick="editActivity(${a.id})" title="Edit">✏️</button>
           <button class="btn btn-sm btn-danger" onclick="deleteActivity(${a.id})" title="Delete">🗑️</button>
+          <a class="btn btn-sm btn-secondary" href="${buildGCalUrl(a)}" target="_blank" title="Add to Google Calendar">📅</a>
         </div>
       </td>
     </tr>`;
-  }).join('');
 
+    // Sub-activities
+    if (a.subActivities && a.subActivities.length) {
+      a.subActivities.forEach(sub => {
+        html += `
+        <tr class="sub-row">
+          <td></td>
+          <td class="activity-name"><span class="sub-indicator">└</span> ${esc(sub.name)}</td>
+          <td style="font-size:10px">${esc(sub.owner || a.owner)}</td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td><span class="badge ${badgeClass(sub.status || 'Not Started')}">${sub.status || 'Not Started'}</span></td>
+          <td></td>
+          <td></td>
+        </tr>`;
+      });
+    }
+  });
+
+  tbody.innerHTML = html;
   document.getElementById('table-count').textContent = `${rows.length} of ${activities.length} activities`;
   document.getElementById('table-last-updated').textContent = `Updated: ${new Date().toLocaleTimeString('en-IN')}`;
-
-  // Update sort headers
-  document.querySelectorAll('th').forEach(th => {
-    th.classList.remove('sort-asc', 'sort-desc');
-  });
 }
 
 function sortTable(col) {
@@ -422,9 +522,9 @@ function onSearch(val) {
 ────────────────────────────────────────── */
 
 const INIT_COLORS = {
-  'Compliance':      '#FF6B6B',
+  'Compliance':      '#f46262',
   'Tool & Platform': '#4ECDC4',
-  'I&D Team':        '#6C63FF',
+  'I&D Team':        '#30496d',
   'Org Competency':  '#FFB347',
   'AI Adoption':     '#00D4AA',
   'Other':           '#8B97A8',
@@ -438,7 +538,13 @@ function renderInitiatives() {
     const linked = activities.filter(a => a.initiative === init.name);
     const done   = linked.filter(a => a.status === 'Completed').length;
     const pct    = linked.length ? Math.round((done / linked.length) * 100) : 0;
-    const color  = INIT_COLORS[init.category] || '#6C63FF';
+    const color  = INIT_COLORS[init.category] || '#30496d';
+
+    // List activities inline
+    const actListHtml = linked.length
+      ? linked.slice(0, 5).map(a => `<div class="init-act-item">${esc(a.name.substring(0,35))}${a.name.length>35?'…':''} <span class="badge ${badgeClass(a.status)}" style="font-size:8px;padding:1px 5px">${a.status}</span></div>`).join('')
+        + (linked.length > 5 ? `<div style="font-size:10px;color:var(--text-muted);margin-top:2px">+ ${linked.length - 5} more…</div>` : '')
+      : '<div style="font-size:10px;color:var(--text-muted)">No activities linked yet</div>';
 
     return `
     <div class="initiative-card" style="--init-color:${color}" onclick="filterByInitiative('${esc(init.name)}')">
@@ -457,9 +563,7 @@ function renderInitiatives() {
       <div class="progress-bar-wrap">
         <div class="progress-bar-fill" style="width:${pct}%;background:linear-gradient(90deg,${color},${color}AA)"></div>
       </div>
-      <div style="margin-top:10px;font-size:11px;color:var(--text-muted)">
-        ${linked.length ? `Click to view activities →` : 'No activities linked yet'}
-      </div>
+      <div class="init-activities-list">${actListHtml}</div>
     </div>`;
   }).join('');
 }
@@ -471,8 +575,157 @@ function filterByInitiative(name) {
   showToast(`📋 Showing activities for: ${name}`, 'info');
 }
 
+/* Initiative CRUD */
+function openInitiativeModal() {
+  document.getElementById('init-modal-overlay').classList.add('open');
+  document.getElementById('init-form').reset();
+}
+
+function closeInitiativeModal() {
+  document.getElementById('init-modal-overlay').classList.remove('open');
+}
+
+function onInitOverlayClick(e) {
+  if (e.target === document.getElementById('init-modal-overlay')) closeInitiativeModal();
+}
+
+function saveInitiative(e) {
+  e.preventDefault();
+  const name = document.getElementById('fi-name').value.trim();
+  const category = document.getElementById('fi-category').value;
+  if (!name || !category) return;
+
+  const newId = INITIATIVES.length ? Math.max(...INITIATIVES.map(i => i.id)) + 1 : 1;
+  INITIATIVES.push({ id: newId, name, category });
+  saveInitiatives();
+
+  // Refresh initiative dropdown in activity form
+  const fFormInit = document.getElementById('f-initiative');
+  fFormInit.innerHTML += `<option>${name}</option>`;
+  const fInit = document.getElementById('filter-initiative');
+  fInit.innerHTML += `<option>${name}</option>`;
+
+  closeInitiativeModal();
+  renderInitiatives();
+  renderSideBadges();
+  showToast(`🎯 Initiative "${name}" added!`, 'success');
+}
+
 /* ──────────────────────────────────────────
-   9. GANTT CHART
+   9. CALENDAR
+────────────────────────────────────────── */
+
+function renderCalendar() {
+  const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  document.getElementById('cal-month-label').textContent = `${monthNames[calMonth]} ${calYear}`;
+
+  const grid = document.getElementById('cal-grid');
+  const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+  let html = days.map(d => `<div class="cal-header-cell">${d}</div>`).join('');
+
+  const firstDay = new Date(calYear, calMonth, 1).getDay();
+  const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+  const daysInPrevMonth = new Date(calYear, calMonth, 0).getDate();
+  const today = new Date();
+
+  // Map activities to dates (endDate is the due date)
+  const dateMap = {};
+  activities.forEach(a => {
+    const dates = [];
+    if (a.endDate) dates.push(a.endDate);
+    if (a.startDate) dates.push(a.startDate);
+    dates.forEach(d => {
+      const dt = new Date(d);
+      if (dt.getMonth() === calMonth && dt.getFullYear() === calYear) {
+        const key = dt.getDate();
+        if (!dateMap[key]) dateMap[key] = [];
+        dateMap[key].push(a);
+      }
+    });
+  });
+
+  // Previous month days
+  for (let i = firstDay - 1; i >= 0; i--) {
+    html += `<div class="cal-cell other-month"><div class="cal-date">${daysInPrevMonth - i}</div></div>`;
+  }
+
+  // Current month days
+  for (let d = 1; d <= daysInMonth; d++) {
+    const isToday = d === today.getDate() && calMonth === today.getMonth() && calYear === today.getFullYear();
+    const tasksForDay = dateMap[d] || [];
+    const chipLimit = 3;
+    const chips = tasksForDay.slice(0, chipLimit).map(a =>
+      `<div class="cal-task-chip status-${a.status.toLowerCase().replace(/\s/g,'')}" title="${esc(a.name)}">${esc(a.name.substring(0,18))}</div>`
+    ).join('');
+    const moreCount = tasksForDay.length > chipLimit ? `<div class="cal-more">+${tasksForDay.length - chipLimit} more</div>` : '';
+
+    html += `
+    <div class="cal-cell${isToday ? ' today' : ''}" onclick="showCalDayDetail(${d})">
+      <div class="cal-date">${d}</div>
+      ${chips}${moreCount}
+    </div>`;
+  }
+
+  // Next month fill
+  const totalCells = firstDay + daysInMonth;
+  const remaining = totalCells % 7 ? 7 - (totalCells % 7) : 0;
+  for (let i = 1; i <= remaining; i++) {
+    html += `<div class="cal-cell other-month"><div class="cal-date">${i}</div></div>`;
+  }
+
+  grid.innerHTML = html;
+  document.getElementById('cal-day-detail').style.display = 'none';
+}
+
+function showCalDayDetail(day) {
+  const dateStr = `${calYear}-${String(calMonth + 1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+  const tasksForDay = activities.filter(a => a.startDate === dateStr || a.endDate === dateStr);
+
+  const detail = document.getElementById('cal-day-detail');
+  if (!tasksForDay.length) {
+    detail.innerHTML = `<h3>📅 ${fmtDateStr(dateStr)}</h3><p style="color:var(--text-muted);font-size:12px">No tasks on this date. <button class="btn btn-sm btn-primary" onclick="openModalWithDate('${dateStr}')">＋ Add Task</button></p>`;
+  } else {
+    detail.innerHTML = `<h3>📅 ${fmtDateStr(dateStr)} — ${tasksForDay.length} task(s)</h3>` +
+      tasksForDay.map(a => `
+        <div class="cal-detail-item">
+          <span class="badge ${badgeClass(a.status)}">${a.status}</span>
+          <strong>${esc(a.name)}</strong>
+          <span style="color:var(--text-muted);font-size:11px">${esc(a.owner)}</span>
+          <a class="cal-gcal-btn" href="${buildGCalUrl(a)}" target="_blank">📅 Add to Calendar</a>
+        </div>
+      `).join('');
+  }
+  detail.style.display = 'block';
+}
+
+function openModalWithDate(dateStr) {
+  openModal();
+  document.getElementById('f-start').value = dateStr;
+  document.getElementById('f-end').value = dateStr;
+}
+
+function calPrev() {
+  calMonth--;
+  if (calMonth < 0) { calMonth = 11; calYear--; }
+  renderCalendar();
+}
+
+function calNext() {
+  calMonth++;
+  if (calMonth > 11) { calMonth = 0; calYear++; }
+  renderCalendar();
+}
+
+function calToday() {
+  const now = new Date();
+  calMonth = now.getMonth();
+  calYear = now.getFullYear();
+  renderCalendar();
+}
+
+/* ──────────────────────────────────────────
+   10. GANTT CHART
 ────────────────────────────────────────── */
 
 const GANTT_START = new Date('2026-04-01');
@@ -482,7 +735,7 @@ const MONTHS = ['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 function renderGantt() {
   const ownerFilter = document.getElementById('gantt-filter-owner')?.value || '';
   const rows = activities.filter(a => {
-    if (ownerFilter && a.owner !== ownerFilter) return false;
+    if (ownerFilter && a.owner !== ownerFilter && !a.owner.includes(ownerFilter)) return false;
     return a.startDate || a.endDate;
   });
 
@@ -506,19 +759,19 @@ function renderGantt() {
         return `
         <div class="gantt-row">
           <div class="gantt-label">
-            <div style="font-weight:600;font-size:12px">${esc(a.name.substring(0,32))}${a.name.length>32?'…':''}</div>
-            <div style="font-size:10px;color:var(--text-muted);margin-top:2px">${esc(a.owner)}</div>
+            <div style="font-weight:600;font-size:11px">${esc(a.name.substring(0,30))}${a.name.length>30?'…':''}</div>
+            <div style="font-size:9px;color:var(--text-muted);margin-top:1px">${esc(a.owner)}</div>
           </div>
           <div class="gantt-track" style="position:relative">
             <div class="gantt-bar ${barClass}"
               style="left:${leftPct.toFixed(1)}%;width:${widthPct.toFixed(1)}%;top:50%;transform:translateY(-50%);"
               title="${esc(a.name)} | ${fmtDate(a.startDate)} → ${fmtDate(a.endDate)} | ${a.status}">
-              ${widthPct > 8 ? esc(a.name.substring(0,20)) : ''}
+              ${widthPct > 8 ? esc(a.name.substring(0,18)) : ''}
             </div>
           </div>
         </div>`;
       }).join('')
-    : `<div class="empty-state" style="padding:40px"><div class="empty-icon">📭</div><p>No activities with dates to display.</p></div>`;
+    : `<div class="empty-state" style="padding:36px"><div class="empty-icon">📭</div><p>No activities with dates to display.</p></div>`;
 }
 
 function daysBetween(a, b) {
@@ -526,7 +779,7 @@ function daysBetween(a, b) {
 }
 
 /* ──────────────────────────────────────────
-   10. CRUD — ADD / EDIT / DELETE
+   11. CRUD — ADD / EDIT / DELETE
 ────────────────────────────────────────── */
 
 function openModal(id = null) {
@@ -534,26 +787,65 @@ function openModal(id = null) {
   const form = document.getElementById('activity-form');
   form.reset();
 
+  // Reset owner checkboxes
+  document.querySelectorAll('#f-owner-checkboxes input').forEach(cb => cb.checked = false);
+
+  // Show/hide sub-activities section
+  const subSection = document.getElementById('subactivities-section');
+  const subList = document.getElementById('subactivities-list');
+  subList.innerHTML = '';
+
   if (id) {
     const a = activities.find(x => x.id === id);
     if (!a) return;
     document.getElementById('modal-title').textContent = '✏️ Edit Activity';
     document.getElementById('modal-save-btn').textContent = 'Update Activity';
     document.getElementById('f-name').value = a.name;
-    document.getElementById('f-owner').value = a.owner;
+
+    // Set owner checkboxes
+    const ownerParts = a.owner.split('/');
+    ownerParts.forEach(o => {
+      const cb = document.querySelector(`#f-owner-checkboxes input[value="${o.trim()}"]`);
+      if (cb) cb.checked = true;
+    });
+
     document.getElementById('f-status').value = a.status;
     document.getElementById('f-start').value = a.startDate;
     document.getElementById('f-end').value = a.endDate;
     document.getElementById('f-type').value = a.type;
     document.getElementById('f-initiative').value = a.initiative;
     document.getElementById('f-notes').value = a.notes;
+
+    // Sub-activities
+    subSection.style.display = 'block';
+    if (a.subActivities && a.subActivities.length) {
+      a.subActivities.forEach(sub => addSubActivityRow(sub.name, sub.status));
+    }
   } else {
     document.getElementById('modal-title').textContent = '➕ Add Activity';
     document.getElementById('modal-save-btn').textContent = 'Save Activity';
-    document.getElementById('f-start').value = '2026-04-03';
+    document.getElementById('f-start').value = new Date().toISOString().slice(0,10);
+    subSection.style.display = 'block';
   }
 
   document.getElementById('modal-overlay').classList.add('open');
+}
+
+function addSubActivityRow(name = '', status = 'Not Started') {
+  const list = document.getElementById('subactivities-list');
+  const row = document.createElement('div');
+  row.className = 'subact-row';
+  row.innerHTML = `
+    <input type="text" placeholder="Sub-activity name" value="${esc(name)}" class="subact-name" />
+    <select class="subact-status">
+      <option ${status === 'Not Started' ? 'selected' : ''}>Not Started</option>
+      <option ${status === 'On Going' ? 'selected' : ''}>On Going</option>
+      <option ${status === 'In Progress' ? 'selected' : ''}>In Progress</option>
+      <option ${status === 'Completed' ? 'selected' : ''}>Completed</option>
+    </select>
+    <button type="button" class="remove-subact" onclick="this.parentElement.remove()">✕</button>
+  `;
+  list.appendChild(row);
 }
 
 function closeModal() {
@@ -567,15 +859,35 @@ function onOverlayClick(e) {
 
 function saveActivity(e) {
   e.preventDefault();
+
+  // Get selected owners
+  const selectedOwners = [];
+  document.querySelectorAll('#f-owner-checkboxes input:checked').forEach(cb => {
+    selectedOwners.push(cb.value);
+  });
+  if (!selectedOwners.length) {
+    showToast('⚠️ Please select at least one owner', 'error');
+    return;
+  }
+
+  // Get sub-activities
+  const subActivities = [];
+  document.querySelectorAll('.subact-row').forEach(row => {
+    const name = row.querySelector('.subact-name').value.trim();
+    const status = row.querySelector('.subact-status').value;
+    if (name) subActivities.push({ name, status });
+  });
+
   const data = {
     name:       document.getElementById('f-name').value.trim(),
-    owner:      document.getElementById('f-owner').value,
+    owner:      selectedOwners.join('/'),
     status:     document.getElementById('f-status').value,
     startDate:  document.getElementById('f-start').value,
     endDate:    document.getElementById('f-end').value,
     type:       document.getElementById('f-type').value,
     initiative: document.getElementById('f-initiative').value,
     notes:      document.getElementById('f-notes').value.trim(),
+    subActivities: subActivities,
   };
 
   if (editingId) {
@@ -590,14 +902,6 @@ function saveActivity(e) {
   saveData();
   closeModal();
   renderAll();
-
-  // Highlight new row
-  if (!editingId) {
-    setTimeout(() => {
-      const row = document.getElementById(`row-${nextId - 1}`);
-      if (row) { row.classList.add('highlight-row'); setTimeout(() => row.classList.remove('highlight-row'), 2000); }
-    }, 100);
-  }
 }
 
 function editActivity(id) {
@@ -616,14 +920,15 @@ function deleteActivity(id) {
 }
 
 /* ──────────────────────────────────────────
-   11. EXPORT CSV
+   12. EXPORT CSV
 ────────────────────────────────────────── */
 
 function exportCSV() {
-  const headers = ['Sr No','Name of Activity','Owner','Initiative','Start Date','End Date','Status','Type','Notes'];
+  const headers = ['Sr No','Name of Activity','Owner','Initiative','Start Date','End Date','Status','Type','Notes','Sub-Activities'];
   const rows = activities.map((a, i) => [
-    i + 1, a.name, a.owner, a.initiative, a.startDate, a.endDate, a.status, a.type, a.notes
-  ].map(v => `"${(v||'').replace(/"/g,'""')}"`));
+    i + 1, a.name, a.owner, a.initiative, a.startDate, a.endDate, a.status, a.type, a.notes,
+    (a.subActivities || []).map(s => `${s.name}(${s.status})`).join('; ')
+  ].map(v => `"${(v||'').toString().replace(/"/g,'""')}"`));
 
   const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
   const blob = new Blob([csv], { type: 'text/csv' });
@@ -637,13 +942,11 @@ function exportCSV() {
 }
 
 /* ──────────────────────────────────────────
-   11b. OPEN IN GOOGLE SHEETS
+   13. GOOGLE SHEETS
 ────────────────────────────────────────── */
 
 function openInGoogleSheets() {
-  // Step 1: auto-download the CSV
   exportCSV();
-  // Step 2: show the guided import modal
   setTimeout(() => {
     document.getElementById('sheets-modal-overlay').classList.add('open');
   }, 600);
@@ -658,7 +961,148 @@ function onSheetsOverlayClick(e) {
 }
 
 /* ──────────────────────────────────────────
-   12. TOAST NOTIFICATIONS
+   14. SHARE
+────────────────────────────────────────── */
+
+function openShareModal() {
+  document.getElementById('share-link').value = window.location.href;
+  document.getElementById('share-modal-overlay').classList.add('open');
+}
+
+function closeShareModal() {
+  document.getElementById('share-modal-overlay').classList.remove('open');
+}
+
+function onShareOverlayClick(e) {
+  if (e.target === document.getElementById('share-modal-overlay')) closeShareModal();
+}
+
+function addEmailChip() {
+  const input = document.getElementById('share-email-input');
+  const email = input.value.trim();
+  if (!email || !email.includes('@')) { showToast('⚠️ Enter a valid email', 'error'); return; }
+
+  const container = document.getElementById('share-email-chips');
+  const chip = document.createElement('span');
+  chip.className = 'email-chip';
+  chip.dataset.email = email;
+  chip.innerHTML = `${email} <button onclick="removeEmailChip(this)">×</button>`;
+  container.appendChild(chip);
+  input.value = '';
+}
+
+function removeEmailChip(btn) {
+  btn.parentElement.remove();
+}
+
+function copyShareLink() {
+  const link = document.getElementById('share-link').value;
+  navigator.clipboard.writeText(link).then(() => {
+    showToast('📋 Link copied to clipboard!', 'success');
+  }).catch(() => {
+    // Fallback
+    const input = document.getElementById('share-link');
+    input.select();
+    document.execCommand('copy');
+    showToast('📋 Link copied!', 'success');
+  });
+}
+
+function sendShareEmail() {
+  const emailChips = document.querySelectorAll('#share-email-chips .email-chip');
+  const emails = Array.from(emailChips).map(c => c.dataset.email).filter(Boolean);
+  if (!emails.length) { showToast('⚠️ Add at least one email', 'error'); return; }
+
+  const link = document.getElementById('share-link').value;
+  const subject = encodeURIComponent('L&D Tracker — Task Sheet Shared');
+  const body = encodeURIComponent(
+    `Hi Team,\n\nPlease find the L&D Activity Tracker shared with you.\n\nTracker Link: ${link}\n\nGoogle Sheet: ${GOOGLE_SHEET_URL}\n\nBest Regards,\nL&D Team`
+  );
+
+  window.open(`mailto:${emails.join(',')}?subject=${subject}&body=${body}`, '_blank');
+  showToast('📧 Email client opened!', 'success');
+  closeShareModal();
+}
+
+/* ──────────────────────────────────────────
+   15. REMINDERS & NOTIFICATIONS
+────────────────────────────────────────── */
+
+function requestNotificationPermission() {
+  if ('Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission();
+  }
+}
+
+function checkReminders() {
+  const now = new Date();
+  const tomorrow = new Date(now);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const tomorrowStr = tomorrow.toISOString().slice(0, 10);
+  const todayStr = now.toISOString().slice(0, 10);
+
+  // Check tasks due tomorrow
+  const dueTomorrow = activities.filter(a => a.endDate === tomorrowStr && a.status !== 'Completed');
+  dueTomorrow.forEach(a => {
+    const reminderKey = `reminder_${a.id}_${tomorrowStr}`;
+    if (!localStorage.getItem(reminderKey)) {
+      showBrowserNotification(`📋 Task due tomorrow: ${a.name}`, `Owner: ${a.owner} | Due: ${fmtDateStr(a.endDate)}`);
+      localStorage.setItem(reminderKey, 'sent');
+    }
+  });
+
+  // Check tasks due today
+  const dueToday = activities.filter(a => a.endDate === todayStr && a.status !== 'Completed');
+  dueToday.forEach(a => {
+    const reminderKey = `reminder_today_${a.id}_${todayStr}`;
+    if (!localStorage.getItem(reminderKey)) {
+      showBrowserNotification(`🚨 Task due TODAY: ${a.name}`, `Owner: ${a.owner} | This task needs to be completed today!`);
+      localStorage.setItem(reminderKey, 'sent');
+    }
+  });
+
+  // Show in-app toast for upcoming
+  if (dueTomorrow.length && !sessionStorage.getItem('reminder_toast_shown')) {
+    showToast(`⏰ ${dueTomorrow.length} task(s) due tomorrow!`, 'info');
+    sessionStorage.setItem('reminder_toast_shown', '1');
+  }
+}
+
+function showBrowserNotification(title, body) {
+  if ('Notification' in window && Notification.permission === 'granted') {
+    new Notification(title, { body, icon: '📋' });
+  }
+}
+
+function buildGCalUrl(activity) {
+  const title = encodeURIComponent(activity.name);
+  const start = activity.endDate || activity.startDate || new Date().toISOString().slice(0,10);
+  const dateClean = start.replace(/-/g, '');
+  const details = encodeURIComponent(`Owner: ${activity.owner}\nInitiative: ${activity.initiative || 'N/A'}\nStatus: ${activity.status}\n\nNotes: ${activity.notes || 'N/A'}`);
+  return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${dateClean}/${dateClean}&details=${details}&sf=true`;
+}
+
+function sendReminderEmail(activityId) {
+  const a = activities.find(x => x.id === activityId);
+  if (!a) return;
+
+  const subject = encodeURIComponent(`[L&D Reminder] Task Due: ${a.name}`);
+  const body = encodeURIComponent(
+    `Hi Team,\n\nThis is a reminder that the following task is due:\n\n` +
+    `📋 Task: ${a.name}\n` +
+    `👤 Owner: ${a.owner}\n` +
+    `📅 Due Date: ${a.endDate || 'TBD'}\n` +
+    `🎯 Initiative: ${a.initiative || 'N/A'}\n` +
+    `📊 Status: ${a.status}\n\n` +
+    `Please ensure this is completed on time.\n\n` +
+    `Best Regards,\nL&D Team`
+  );
+
+  window.open(`mailto:${TEAM_EMAILS.join(',')}?subject=${subject}&body=${body}`, '_blank');
+}
+
+/* ──────────────────────────────────────────
+   16. TOAST NOTIFICATIONS
 ────────────────────────────────────────── */
 
 function showToast(msg, type = 'info') {
@@ -671,7 +1115,7 @@ function showToast(msg, type = 'info') {
 }
 
 /* ──────────────────────────────────────────
-   13. HELPERS
+   17. HELPERS
 ────────────────────────────────────────── */
 
 function esc(str) {
@@ -686,6 +1130,13 @@ function fmtDate(d) {
   } catch { return d; }
 }
 
+function fmtDateStr(d) {
+  if (!d) return '—';
+  try {
+    return new Date(d).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+  } catch { return d; }
+}
+
 function badgeClass(status) {
   const map = { 'Completed': 'badge-completed', 'In Progress': 'badge-inprogress', 'On Going': 'badge-ongoing', 'Not Started': 'badge-notstarted' };
   return map[status] || 'badge-notstarted';
@@ -697,6 +1148,7 @@ function rowStatusClass(status) {
 }
 
 function avatarClass(name) {
+  if (name === 'Tejashri') return 'av-tejashri';
   if (name === 'Tanaya') return 'av-tanaya';
   if (name === 'Nikhil') return 'av-nikhil';
   if (name === 'Deepraj') return 'av-deepraj';
