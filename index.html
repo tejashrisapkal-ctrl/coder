@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>L&D Activity Tracker | Learning & Development</title>
-  <meta name="description" content="Automated L&D tracker for managing trainings, certifications, and core initiatives." />
+  <meta name="description" content="Automated Learning & Development tracker for managing trainings, certifications, initiatives, and Google learnings." />
   <link rel="stylesheet" href="style.css" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
@@ -13,40 +13,7 @@
 <!-- ══════════ SIDEBAR ══════════ -->
 <aside class="sidebar" id="sidebar">
   <div class="sidebar-logo">
-    <!-- Book + AI Combined Logo SVG -->
-    <div class="logo-icon">
-      <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" width="48" height="48">
-        <defs>
-          <linearGradient id="logoGrad" x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse">
-            <stop offset="0%" stop-color="#6C63FF"/>
-            <stop offset="100%" stop-color="#00D4AA"/>
-          </linearGradient>
-        </defs>
-        <rect width="48" height="48" rx="13" fill="url(#logoGrad)"/>
-        <!-- Open Book left page -->
-        <path d="M24 36 L10 31 L10 13 L24 18 Z" fill="white" opacity="0.92"/>
-        <!-- Open Book right page -->
-        <path d="M24 36 L38 31 L38 13 L24 18 Z" fill="white" opacity="0.75"/>
-        <!-- Book spine -->
-        <line x1="24" y1="18" x2="24" y2="36" stroke="rgba(108,99,255,0.5)" stroke-width="1.5"/>
-        <!-- Left page lines -->
-        <line x1="12" y1="20" x2="22" y2="17" stroke="rgba(108,99,255,0.35)" stroke-width="1"/>
-        <line x1="12" y1="24" x2="22" y2="21" stroke="rgba(108,99,255,0.35)" stroke-width="1"/>
-        <line x1="12" y1="28" x2="22" y2="25" stroke="rgba(108,99,255,0.35)" stroke-width="1"/>
-        <!-- AI Circuit dots (right page) -->
-        <circle cx="29" cy="20" r="1.8" fill="#00D4AA"/>
-        <circle cx="34" cy="23" r="1.8" fill="#FFB347"/>
-        <circle cx="30" cy="27" r="1.8" fill="#6C63FF" opacity="0.9"/>
-        <!-- Circuit connections -->
-        <line x1="29" y1="20" x2="34" y2="23" stroke="#00D4AA" stroke-width="1.2" opacity="0.8"/>
-        <line x1="34" y1="23" x2="30" y2="27" stroke="#FFB347" stroke-width="1.2" opacity="0.8"/>
-        <line x1="29" y1="20" x2="30" y2="27" stroke="rgba(108,99,255,0.5)" stroke-width="0.8" stroke-dasharray="2 2"/>
-        <!-- AI spark top right -->
-        <circle cx="36" cy="15" r="1" fill="white" opacity="0.7"/>
-        <circle cx="33" cy="12" r="0.7" fill="white" opacity="0.5"/>
-        <circle cx="39" cy="18" r="0.7" fill="white" opacity="0.5"/>
-      </svg>
-    </div>
+    <div class="logo-icon">🎓</div>
     <div class="logo-title">L&D Tracker</div>
     <div class="logo-subtitle">Learning &amp; Development</div>
   </div>
@@ -66,9 +33,6 @@
       <span class="nav-icon">🎯</span> Initiatives
       <span class="nav-badge" id="nav-badge-initiatives">18</span>
     </div>
-    <div class="nav-item" data-page="calendar" onclick="navigate('calendar')">
-      <span class="nav-icon">📅</span> Calendar
-    </div>
     <div class="nav-item" data-page="gantt" onclick="navigate('gantt')">
       <span class="nav-icon">🗓️</span> Timeline
     </div>
@@ -76,35 +40,21 @@
     <div class="nav-section-label">Quick Filters</div>
     <div class="nav-item" onclick="quickFilter('status','Completed')">
       <span class="nav-icon">✅</span> Completed
-      <span class="nav-badge qf-badge" id="qf-completed" style="background:#00C896">0</span>
+      <span class="nav-badge" id="qf-completed" style="background:#00C896">0</span>
     </div>
     <div class="nav-item" onclick="quickFilter('status','In Progress')">
       <span class="nav-icon">🔄</span> In Progress
-      <span class="nav-badge qf-badge" id="qf-inprogress" style="background:#6C63FF">0</span>
+      <span class="nav-badge" id="qf-inprogress" style="background:#6C63FF">0</span>
     </div>
     <div class="nav-item" onclick="quickFilter('status','On Going')">
       <span class="nav-icon">🔵</span> On Going
-      <span class="nav-badge qf-badge" id="qf-ongoing" style="background:#FFB347">0</span>
-    </div>
-
-    <div class="nav-section-label">Team</div>
-    <div class="nav-item team-nav" onclick="quickFilter('owner','Tejashri')">
-      <span class="av-dot av-tejashri">T</span> Tejashri
-    </div>
-    <div class="nav-item team-nav" onclick="quickFilter('owner','Tanaya')">
-      <span class="av-dot av-tanaya">T</span> Tanaya
-    </div>
-    <div class="nav-item team-nav" onclick="quickFilter('owner','Nikhil')">
-      <span class="av-dot av-nikhil">N</span> Nikhil
-    </div>
-    <div class="nav-item team-nav" onclick="quickFilter('owner','Deepraj')">
-      <span class="av-dot av-deepraj">D</span> Deepraj
+      <span class="nav-badge" id="qf-ongoing" style="background:#FFB347">0</span>
     </div>
   </nav>
 
   <div class="sidebar-footer">
     <div class="date-display" id="sidebar-date"></div>
-    <div>L&D Team Tracker v2.0</div>
+    <div>L&amp;D Team Tracker v1.0</div>
   </div>
 </aside>
 
@@ -122,20 +72,19 @@
         <span class="search-icon">🔍</span>
         <input type="text" id="global-search" placeholder="Search activities…" oninput="onSearch(this.value)" />
       </div>
-      <button class="btn btn-sheets" onclick="openSheetsSync()" title="Sync from Google Sheets">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 14H7v-2h5v2zm5-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
-        Sync Sheets
-      </button>
-      <button class="btn btn-share" onclick="openShareModal()">📤 Share</button>
       <button class="btn btn-secondary" onclick="exportCSV()">⬇️ Export CSV</button>
+      <button class="btn btn-sheets" onclick="openInGoogleSheets()" title="Export data and open in Google Sheets">
+        <img src="https://www.gstatic.com/images/branding/product/1x/sheets_2020q4_32dp.png" alt="" style="width:16px;height:16px;vertical-align:middle" />
+        Open in Sheets
+      </button>
       <button class="btn btn-primary" onclick="openModal()">＋ Add Activity</button>
     </div>
   </header>
-    <div class="owner-boxes" id="owner-boxes"></div>
 
   <!-- ══ PAGE: DASHBOARD ══ -->
   <section class="page active" id="page-dashboard">
     <div class="stats-grid" id="stats-grid"></div>
+
     <div class="charts-grid">
       <div class="chart-card">
         <div class="chart-card-title">📈 Status Distribution</div>
@@ -146,10 +95,12 @@
         <canvas id="chart-owner"></canvas>
       </div>
     </div>
+
     <div class="chart-card" style="margin-bottom:28px">
       <div class="chart-card-title">🎯 Activities by Type</div>
       <canvas id="chart-type" style="max-height:160px"></canvas>
     </div>
+
     <div class="section-header">
       <div class="section-title">🕐 Recent Activities</div>
     </div>
@@ -173,10 +124,6 @@
         <span class="filter-label">Owner</span>
         <select id="filter-owner" onchange="applyFilters()">
           <option value="">All</option>
-          <option>Tejashri</option>
-          <option>Tanaya</option>
-          <option>Nikhil</option>
-          <option>Deepraj</option>
         </select>
       </div>
       <div class="filter-group">
@@ -185,8 +132,6 @@
           <option value="">All</option>
           <option>Monthly</option>
           <option>Till Dec 2026</option>
-          <option>One-time</option>
-          <option>Quarterly</option>
         </select>
       </div>
       <div class="filter-group">
@@ -224,16 +169,15 @@
     </div>
   </section>
 
-  <!-- ══ PAGE: INITIATIVES (Rectangular) ══ -->
+  <!-- ══ PAGE: INITIATIVES ══ -->
   <section class="page" id="page-initiatives">
     <div class="section-header">
       <div class="section-title">🎯 Core L&D Initiatives</div>
       <div class="section-actions">
-        <button class="btn btn-primary btn-sm" onclick="openAddCoreInitiativeModal()" style="margin-right:10px">＋ Add Core Initiative</button>
         <select id="filter-init-category" onchange="renderInitiatives()">
           <option value="">All Categories</option>
           <option>I&D Team</option>
-          <option>Tool &amp; Platform</option>
+          <option>Tool & Platform</option>
           <option>Org Competency</option>
           <option>AI Adoption</option>
           <option>Compliance</option>
@@ -241,87 +185,33 @@
         </select>
       </div>
     </div>
-    <div class="initiatives-list" id="initiatives-grid"></div>
+    <div class="initiatives-grid" id="initiatives-grid"></div>
   </section>
 
-  <!-- ══ PAGE: CALENDAR (Google Calendar style) ══ -->
-  <section class="page" id="page-calendar">
-    <div class="cal-topbar">
-      <div class="cal-nav">
-        <button class="btn btn-secondary btn-icon" onclick="changeMonth(-1)">&#9664;</button>
-        <span class="cal-month-title" id="cal-month-title">October 2026</span>
-        <button class="btn btn-secondary btn-icon" onclick="changeMonth(1)">&#9654;</button>
-      </div>
-      <div class="cal-filters">
-        <select id="cal-status-filter" onchange="renderCalendar()">
-          <option value="">All Status</option>
-          <option>On Going</option>
-          <option>In Progress</option>
-          <option>Completed</option>
-          <option>Not Started</option>
-        </select>
-        <select id="cal-owner-filter" onchange="renderCalendar()">
-          <option value="">All Owners</option>
-          <option>Tejashri</option>
-          <option>Tanaya</option>
-          <option>Nikhil</option>
-          <option>Deepraj</option>
-        </select>
-        <button class="btn btn-secondary btn-sm" onclick="goToToday()">Today</button>
-      </div>
-    </div>
-    <div class="cal-legend">
-      <span class="cal-leg"><span class="cal-dot" style="background:#00C896"></span>Completed</span>
-      <span class="cal-leg"><span class="cal-dot" style="background:#6C63FF"></span>In Progress</span>
-      <span class="cal-leg"><span class="cal-dot" style="background:#FFB347"></span>On Going</span>
-      <span class="cal-leg"><span class="cal-dot" style="background:#8B97A8"></span>Not Started</span>
-    </div>
-    <div class="cal-container">
-      <div class="cal-day-headers">
-        <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
-      </div>
-      <div class="cal-grid" id="cal-grid"></div>
-    </div>
-    <div class="cal-detail" id="cal-detail" style="display:none">
-      <div class="cal-detail-hdr">
-        <span class="cal-detail-date" id="cal-detail-date"></span>
-        <button class="btn btn-secondary btn-sm" onclick="document.getElementById('cal-detail').style.display='none'">✕ Close</button>
-      </div>
-      <div id="cal-detail-list"></div>
-    </div>
-  </section>
-
-  <!-- ══ PAGE: TIMELINE / GANTT ══ -->
+  <!-- ══ PAGE: GANTT ══ -->
   <section class="page" id="page-gantt">
     <div class="section-header">
       <div class="section-title">🗓️ Activity Timeline (Apr – Dec 2026)</div>
       <div class="section-actions">
-        <select id="gantt-status-filter" onchange="renderGantt()">
-          <option value="">All Status</option>
-          <option>On Going</option>
-          <option>In Progress</option>
-          <option>Completed</option>
-          <option>Not Started</option>
-        </select>
         <select id="gantt-filter-owner" onchange="renderGantt()">
           <option value="">All Owners</option>
-          <option>Tejashri</option>
-          <option>Tanaya</option>
-          <option>Nikhil</option>
-          <option>Deepraj</option>
         </select>
       </div>
     </div>
     <div class="gantt-wrapper">
-      <div class="gantt-header-row">
-        <div class="gantt-label-col" style="font-size:11px;font-weight:700;color:var(--text-muted);padding:12px 20px">ACTIVITY</div>
-        <div id="gantt-month-headers" class="gantt-months-row"></div>
+      <div class="gantt-header">
+        <div class="gantt-row" style="min-height:36px">
+          <div class="gantt-label" style="font-size:11px;font-weight:700;color:var(--text-muted)">ACTIVITY</div>
+          <div style="display:flex;border-left:1px solid var(--border)">
+            <div id="gantt-month-headers" style="display:flex;flex:1"></div>
+          </div>
+        </div>
       </div>
       <div class="gantt-body" id="gantt-body"></div>
     </div>
   </section>
 
-</main>
+</main><!-- /main -->
 
 <!-- ══════════ ADD / EDIT MODAL ══════════ -->
 <div class="modal-overlay" id="modal-overlay" onclick="onOverlayClick(event)">
@@ -333,36 +223,18 @@
           <label class="form-label">Activity Name *</label>
           <input type="text" id="f-name" required placeholder="e.g. AI Fluency Training" />
         </div>
-
-        <!-- Multi-select Owner -->
         <div class="form-group">
-          <label class="form-label">Owner(s) *</label>
-          <div class="owner-multiselect" id="owner-multiselect">
-            <div class="owner-ms-trigger" id="owner-ms-trigger" onclick="toggleOwnerDropdown(event)">
-              <div id="owner-display" class="owner-display-placeholder">Select owner(s)</div>
-              <span class="owner-ms-arrow">▾</span>
-            </div>
-            <div class="owner-ms-dropdown" id="owner-ms-dropdown">
-              <label class="owner-ms-option">
-                <input type="checkbox" value="Tejashri" onchange="updateOwnerDisplay()" />
-                <span class="av-dot av-tejashri" style="flex-shrink:0">T</span> Tejashri
-              </label>
-              <label class="owner-ms-option">
-                <input type="checkbox" value="Tanaya" onchange="updateOwnerDisplay()" />
-                <span class="av-dot av-tanaya" style="flex-shrink:0">T</span> Tanaya
-              </label>
-              <label class="owner-ms-option">
-                <input type="checkbox" value="Nikhil" onchange="updateOwnerDisplay()" />
-                <span class="av-dot av-nikhil" style="flex-shrink:0">N</span> Nikhil
-              </label>
-              <label class="owner-ms-option">
-                <input type="checkbox" value="Deepraj" onchange="updateOwnerDisplay()" />
-                <span class="av-dot av-deepraj" style="flex-shrink:0">D</span> Deepraj
-              </label>
-            </div>
-          </div>
+          <label class="form-label">Owner *</label>
+          <select id="f-owner" required>
+            <option value="">Select owner</option>
+            <option>Tanaya</option>
+            <option>Nikhil</option>
+            <option>Deepraj</option>
+            <option>Tanaya/Deepraj</option>
+            <option>Tanaya/Nikhil</option>
+            <option>Team</option>
+          </select>
         </div>
-
         <div class="form-group">
           <label class="form-label">Status *</label>
           <select id="f-status" required>
@@ -401,13 +273,6 @@
           <label class="form-label">Notes</label>
           <textarea id="f-notes" placeholder="Any additional notes or context…"></textarea>
         </div>
-        <div class="form-group">
-          <label class="form-label">📅 Meeting Date (optional)</label>
-          <input type="date" id="f-meeting" title="Schedule a meeting for this task — you will get a reminder the day before" />
-        </div>
-        <div class="form-group" style="display:flex;align-items:flex-end">
-          <small style="color:var(--text-muted);font-size:11px;line-height:1.5">📬 If a meeting date is set, a reminder email + calendar (.ics) file will be sent the day before with:<br>"<em>All the best for meeting and task! 🙌</em>"</small>
-        </div>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
@@ -417,89 +282,60 @@
   </div>
 </div>
 
-<!-- ══════════ SHARE MODAL ══════════ -->
-<div class="modal-overlay" id="share-modal-overlay" onclick="onShareOverlayClick(event)">
-  <div class="modal" style="max-width:620px">
-    <div class="modal-title">📤 Share Task Sheet</div>
-    <p style="color:var(--text-secondary);font-size:13px;margin-bottom:16px">Send a summary of L&D activities to team members. Opens your email client.</p>
-
-    <div class="form-group" style="margin-bottom:14px">
-      <label class="form-label">Recipients</label>
-      <div class="recipient-list">
-        <label class="recipient-item">
-          <input type="checkbox" id="email-tejashri" value="tejashri.sapkal@onixnet.com" checked />
-          <span class="av-dot av-tejashri">T</span>
-          <div><div class="rec-name">Tejashri Sapkal</div><div class="rec-email">tejashri.sapkal@onixnet.com</div></div>
-        </label>
-        <label class="recipient-item">
-          <input type="checkbox" id="email-tanaya" value="tanaya.sankapal@onixnet.com" checked />
-          <span class="av-dot av-tanaya">T</span>
-          <div><div class="rec-name">Tanaya Sankapal</div><div class="rec-email">tanaya.sankapal@onixnet.com</div></div>
-        </label>
-        <label class="recipient-item">
-          <input type="checkbox" id="email-nikhil" value="nikhil.shelke@onixnet.com" checked />
-          <span class="av-dot av-nikhil">N</span>
-          <div><div class="rec-name">Nikhil Shelke</div><div class="rec-email">nikhil.shelke@onixnet.com</div></div>
-        </label>
-        <label class="recipient-item">
-          <input type="checkbox" id="email-deepraj" value="deepraj.bhosale@onixnet.com" checked />
-          <span class="av-dot av-deepraj">D</span>
-          <div><div class="rec-name">Deepraj Bhosale</div><div class="rec-email">deepraj.bhosale@onixnet.com</div></div>
-        </label>
-      </div>
-    </div>
-
-    <div class="form-group" style="margin-bottom:12px">
-      <label class="form-label">Subject</label>
-      <input type="text" id="share-subject" value="L&D Team — Activity Tracker Update" style="width:100%;padding:10px 12px;border-radius:10px" />
-    </div>
-    <div class="form-group" style="margin-bottom:14px">
-      <label class="form-label">Message</label>
-      <textarea id="share-message" rows="7" style="width:100%;padding:10px 12px;border-radius:10px;font-size:12px;line-height:1.7;font-family:var(--font-main)"></textarea>
-    </div>
-
-    <div class="reminder-box">
-      <div class="reminder-box-title">🔔 Automatic Reminders</div>
-      <label class="reminder-toggle-row">
-        <input type="checkbox" id="enable-reminders" onchange="toggleReminders(this.checked)" />
-        Enable desktop notifications — <strong>1 day before</strong> task due &amp; <strong>1 hour before</strong> for same-day tasks
-      </label>
-      <div id="reminder-status" style="display:none;margin-top:8px;font-size:11px;color:var(--status-completed)">✅ Reminders are active</div>
-    </div>
-
-    <div class="modal-footer">
-      <button class="btn btn-secondary" onclick="closeShareModal()">Cancel</button>
-      <button class="btn btn-primary" onclick="sendShareEmail()">📧 Open Email</button>
-    </div>
-  </div>
-</div>
-
-<!-- ══════════ GOOGLE SHEETS SYNC MODAL ══════════ -->
-<div class="modal-overlay" id="sheets-sync-overlay" onclick="onSheetsSyncOverlayClick(event)">
-  <div class="modal" style="max-width:560px">
+<!-- Google Sheets Modal -->
+<div class="modal-overlay" id="sheets-modal-overlay" onclick="onSheetsOverlayClick(event)">
+  <div class="modal" style="max-width:600px">
     <div class="modal-title" style="color:#0F9D58">
-      <svg width="26" height="26" viewBox="0 0 24 24" fill="#0F9D58"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 14H7v-2h5v2zm5-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
-      Sync from Google Sheets
+      <img src="https://www.gstatic.com/images/branding/product/1x/sheets_2020q4_32dp.png" alt="" style="width:28px;height:28px" />
+      Open in Google Sheets
     </div>
-    <p style="color:var(--text-secondary);font-size:13px;margin-bottom:16px">Import activities from your L&D Google Sheet automatically.</p>
-
-    <div class="hint-box" style="margin-bottom:14px">
-      📋 <strong>Your Sheet:</strong>
-      <a href="https://docs.google.com/spreadsheets/d/1B5cI9UpRKemHf7OnwanVR9Lz-JUIpjwgVLgUOVIk6qY/edit?gid=2050775428" target="_blank" style="color:#0F9D58;word-break:break-all">Open Google Sheet ↗</a>
+    <p style="color:var(--text-secondary);font-size:13px;margin-bottom:20px">
+      Your CSV file has been downloaded. Follow these steps to import it into Google Sheets:
+    </p>
+    <ol class="sheets-steps">
+      <li class="sheets-step">
+        <div class="step-num">1</div>
+        <div class="step-content">
+          <div class="step-title">Open Google Sheets</div>
+          <div class="step-desc">Click the button below to open Google Sheets in a new tab. Sign in with your Google account if prompted.</div>
+        </div>
+      </li>
+      <li class="sheets-step">
+        <div class="step-num">2</div>
+        <div class="step-content">
+          <div class="step-title">Create a New Spreadsheet</div>
+          <div class="step-desc">Click <strong>Blank spreadsheet</strong> or open your existing L&D tracker sheet.</div>
+        </div>
+      </li>
+      <li class="sheets-step">
+        <div class="step-num">3</div>
+        <div class="step-content">
+          <div class="step-title">Import the CSV File</div>
+          <div class="step-desc">Go to <strong>File → Import → Upload</strong> and select the downloaded CSV file (named <code style="background:var(--bg-input);padding:1px 6px;border-radius:4px">LD_Tracker_YYYY-MM-DD.csv</code> from your Downloads folder).</div>
+        </div>
+      </li>
+      <li class="sheets-step">
+        <div class="step-num">4</div>
+        <div class="step-content">
+          <div class="step-title">Choose Import Settings</div>
+          <div class="step-desc">Select <strong>"Replace spreadsheet"</strong> or <strong>"Insert new sheet"</strong>, then click <strong>Import data</strong>. Your tracker data will appear instantly!</div>
+        </div>
+      </li>
+    </ol>
+    <div class="hint-box">
+      💡 <strong>Pro tip:</strong> To keep Google Sheets always in sync, click <strong>"Export CSV"</strong> from this tracker whenever you make changes, then re-import into Sheets. Or ask your IT team to set up a Google Apps Script for automatic sync!
     </div>
-    <div style="background:rgba(255,179,71,0.1);border:1px solid rgba(255,179,71,0.3);border-radius:10px;padding:12px 14px;margin-bottom:14px;font-size:12px;color:var(--text-secondary);line-height:1.7">
-      ⚠️ <strong>Required first:</strong> Open your Sheet → <strong>File → Share → Publish to web</strong> → select <em>Entire Document</em> as <em>Comma-separated values (.csv)</em> → <strong>Publish</strong>. Then click Sync below.
-    </div>
-    <div id="sync-status" style="display:none;padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:12px;line-height:1.6"></div>
-    <div class="modal-footer">
-      <button class="btn btn-secondary" onclick="closeSheetsSyncModal()">Cancel</button>
-      <a href="https://docs.google.com/spreadsheets/d/1B5cI9UpRKemHf7OnwanVR9Lz-JUIpjwgVLgUOVIk6qY/edit?gid=2050775428" target="_blank" class="btn btn-secondary">Open Sheet ↗</a>
-      <button class="btn btn-primary" id="sync-btn" onclick="syncFromSheets()" style="background:linear-gradient(135deg,#0F9D58,#0D8A4E);border:none">🔄 Sync Now</button>
+    <div class="sheets-actions">
+      <a href="https://sheets.new" target="_blank" class="sheets-link">
+        <img src="https://www.gstatic.com/images/branding/product/1x/sheets_2020q4_32dp.png" alt="" style="width:18px;height:18px" />
+        Open Google Sheets →
+      </a>
+      <button class="btn btn-secondary" onclick="closeSheetsModal()">Close</button>
     </div>
   </div>
 </div>
 
-<!-- Toast -->
+<!-- Toast Container -->
 <div class="toast-container" id="toast-container"></div>
 
 <script src="app.js"></script>
