@@ -46,12 +46,13 @@ const DEFAULT_ACTIVITIES = [
   { id: 12, name: 'Gemini Certification Drive - Cohort 1',  owner: 'Nikhil',         startDate: '2026-05-01', endDate: '2026-07-31', status: 'Not Started', type: 'Till Dec 2026', initiative: 'Gemini Enterprise Certification Drive', notes: '', subActivities: [] },
   { id: 13, name: 'Udemy License Management',               owner: 'Tanaya/Deepraj', startDate: '2026-04-01', endDate: '',           status: 'On Going',    type: 'Monthly',       initiative: 'Udemy / Learnrush', notes: 'Monthly license renewal tracking', subActivities: [] },
   { id: 14, name: 'Summer Internship Onboarding Program',   owner: 'Nikhil',         startDate: '2026-05-15', endDate: '2026-08-15', status: 'Not Started', type: 'One-time',      initiative: 'Summer Internship', notes: '', subActivities: [] },
-  { id: 15, name: 'Leadership Training - Batch 2',          owner: 'Tejashri/Tanaya',startDate: '2026-06-01', endDate: '2026-09-30', status: 'Not Started', type: '',              initiative: 'Leadership Training', notes: '', subActivities: [] },
+  { id: 15, name: 'Leadership Training - Batch 2',          owner: 'Tejashri',       startDate: '2026-06-01', endDate: '2026-09-30', status: 'In Progress', type: '',              initiative: 'Leadership Training', notes: '', subActivities: [] },
   { id: 16, name: 'Fresher Batch Induction',                owner: 'Nikhil',         startDate: '2026-04-20', endDate: '2026-05-20', status: 'In Progress', type: 'One-time',      initiative: 'Fresher Internship Training', notes: '', subActivities: [] },
   { id: 17, name: 'AI Fluency for PE - Module 1',           owner: 'Tanaya/Deepraj', startDate: '2026-04-10', endDate: '2026-12-31', status: 'In Progress', type: 'Till Dec 2026', initiative: 'AI Fluency for PE', notes: '', subActivities: [] },
-  { id: 18, name: 'Priority Plays Session - Q2',            owner: 'Tejashri',       startDate: '2026-04-15', endDate: '2026-06-15', status: 'On Going',    type: 'Quarterly',     initiative: 'Priority Plays', notes: '', subActivities: [] },
+  { id: 18, name: 'Priority Plays Session - Q2',            owner: 'Tejashri',       startDate: '2026-04-15', endDate: '2026-06-15', status: 'In Progress', type: 'Quarterly',     initiative: 'Priority Plays', notes: '', subActivities: [] },
   { id: 19, name: 'Silver/Gold Bench Program Refresh',      owner: 'Nikhil',         startDate: '2026-05-01', endDate: '2026-10-31', status: 'Not Started', type: '',              initiative: 'Silver/Gold - Project and Bench', notes: '', subActivities: [] },
   { id: 20, name: 'AI Hackathon Preparation',               owner: 'Deepraj',        startDate: '2026-06-01', endDate: '2026-07-31', status: 'Not Started', type: 'One-time',      initiative: 'AI Hackathon', notes: '', subActivities: [] },
+  { id: 21, name: 'First Time Manager Boot Camp Preparation', owner: 'Tejashri',     startDate: '2026-04-08', endDate: '2026-05-15', status: 'In Progress', type: 'Quarterly',     initiative: 'Leadership Training', notes: 'Connect Session with Nikita Kamath', subActivities: [] },
 ];
 
 const TEAM_EMAILS = [
@@ -96,31 +97,31 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function loadData() {
-  const stored = localStorage.getItem('ld_tracker_activities_v2');
+  const stored = localStorage.getItem('ld_tracker_activities_v3');
   if (stored) {
     try {
       activities = JSON.parse(stored);
       activities.forEach(a => { if (!a.subActivities) a.subActivities = []; });
       nextId = activities.length ? Math.max(...activities.map(a => a.id)) + 1 : 1;
-    } catch { activities = DEFAULT_ACTIVITIES.map(a => ({...a})); }
+    } catch { activities = DEFAULT_ACTIVITIES.map(a => ({...a, subActivities: [...(a.subActivities || [])]})); }
   } else {
     activities = DEFAULT_ACTIVITIES.map(a => ({...a, subActivities: [...(a.subActivities || [])]}));
   }
 }
 
 function loadInitiatives() {
-  const stored = localStorage.getItem('ld_tracker_initiatives_v2');
+  const stored = localStorage.getItem('ld_tracker_initiatives_v3');
   if (stored) {
     try { INITIATIVES = JSON.parse(stored); } catch {}
   }
 }
 
 function saveData() {
-  localStorage.setItem('ld_tracker_activities_v2', JSON.stringify(activities));
+  localStorage.setItem('ld_tracker_activities_v3', JSON.stringify(activities));
 }
 
 function saveInitiatives() {
-  localStorage.setItem('ld_tracker_initiatives_v2', JSON.stringify(INITIATIVES));
+  localStorage.setItem('ld_tracker_initiatives_v3', JSON.stringify(INITIATIVES));
 }
 
 function populateDropdowns() {
@@ -226,10 +227,13 @@ function getOwnerCounts(statusFilter = null) {
   OWNERS.forEach(o => { counts[o] = 0; });
   const list = statusFilter ? activities.filter(a => a.status === statusFilter) : activities;
   list.forEach(a => {
-    const parts = (a.owner || '').split('/');
-    parts.forEach(p => {
-      const name = p.trim();
-      if (counts[name] !== undefined) counts[name]++;
+    const parts = (a.owner || '').split('/').map(p => p.trim());
+    parts.forEach(name => {
+      for (const ownerName of OWNERS) {
+        if (ownerName.toLowerCase() === name.toLowerCase()) {
+          counts[ownerName]++;
+        }
+      }
     });
   });
   return counts;
@@ -249,7 +253,7 @@ function renderStatsStrip() {
   const notStartedOwners = getOwnerCounts('Not Started');
 
   const cells = [
-    { value: total,      label: 'Total Activities', accent: '#30496d', owners: totalOwners },
+    { value: total,      label: 'Total Registered', accent: '#30496d', owners: totalOwners },
     { value: completed,  label: 'Completed',        accent: '#00C896', owners: completedOwners },
     { value: inprogress, label: 'In Progress',      accent: '#30496d', owners: inprogressOwners },
     { value: ongoing,    label: 'On Going',         accent: '#f46262', owners: ongoingOwners },
@@ -264,7 +268,7 @@ function renderStatsStrip() {
         ${OWNERS.map(o => `
           <div class="stat-owner-row">
             <span class="stat-owner-name">${o}</span>
-            <span class="stat-owner-num">${c.owners[o] || 0}</span>
+            <span class="stat-owner-num" style="background:${c.accent}">${c.owners[o] || 0}</span>
           </div>
         `).join('')}
       </div>
