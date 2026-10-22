@@ -2,7 +2,6 @@
    L&D TRACKER v2.0 — APP LOGIC
    Calendar · Multi-Owner · Initiatives · Share ·
    Google Sheets Sync · Email Reminders · CRUD
-   Theme: #30496d & #f46262
    ══════════════════════════════════════════════════ */
 'use strict';
 
@@ -37,11 +36,11 @@ const INITIATIVES = [
 ];
 
 const INIT_COLORS = {
-  'Compliance':      '#f46262',
+  'Compliance':      '#FF6B6B',
   'Tool & Platform': '#4ECDC4',
-  'I&D Team':        '#30496d',
+  'I&D Team':        '#6C63FF',
   'Org Competency':  '#FFB347',
-  'AI Adoption':     '#00C896',
+  'AI Adoption':     '#00D4AA',
   'Other':           '#8B97A8',
 };
 
@@ -66,13 +65,11 @@ const DEFAULT_ACTIVITIES = [
   { id:18, name:'Priority Plays Session - Q2',            owner:'Tejashri/Tanaya', startDate:'2026-04-15', endDate:'2026-06-15', status:'On Going',    type:'Quarterly',     initiative:'Priority Plays', notes:'' },
   { id:19, name:'Silver/Gold Bench Program Refresh',      owner:'Nikhil',          startDate:'2026-05-01', endDate:'2026-10-31', status:'Not Started', type:'',              initiative:'Silver/Gold - Project and Bench', notes:'' },
   { id:20, name:'AI Hackathon Preparation',               owner:'Tejashri/Deepraj',startDate:'2026-06-01', endDate:'2026-07-31', status:'Not Started', type:'One-time',      initiative:'AI Hackathon', notes:'' },
-  { id:21, name:'FDE',                                    owner:'Tanaya/Nikhil',   startDate:'2026-08-10', endDate:'',           status:'In Progress', type:'',              initiative:'Google Ecosystem', notes:'' },
-  { id:22, name:'AI and Python Question Bank Review',     owner:'Tejashri',        startDate:'2026-10-04', endDate:'',           status:'In Progress', type:'',              initiative:'Silver/Gold - Project and Bench', notes:'' },
 ];
 
 /* ── 2. STATE ── */
 let activities = [];
-let nextId = 23;
+let nextId = 21;
 let editingId = null;
 let sortCol = 'id';
 let sortDir = 1;
@@ -204,12 +201,12 @@ function renderStatsCards() {
   const pct     = total ? Math.round((done / total) * 100) : 0;
 
   const cards = [
-    { icon:'📋', value:total, label:'Total Activities', sub:`Across ${INITIATIVES.length} initiatives`, accent:'#30496d', iconBg:'rgba(48,73,109,0.1)' },
+    { icon:'📋', value:total, label:'Total Activities', sub:`Across ${INITIATIVES.length} initiatives`, accent:'#6C63FF', iconBg:'rgba(108,99,255,0.1)' },
     { icon:'✅', value:done,  label:'Completed',        sub:`${pct}% completion rate`,                  accent:'#00C896', iconBg:'rgba(0,200,150,0.1)' },
-    { icon:'🔄', value:inp,   label:'In Progress',      sub:`${ong} on going`,                          accent:'#30496d', iconBg:'rgba(48,73,109,0.1)' },
+    { icon:'🔄', value:inp,   label:'In Progress',      sub:`${ong} on going`,                          accent:'#6C63FF', iconBg:'rgba(108,99,255,0.1)' },
     { icon:'🔵', value:ong,   label:'On Going',         sub:'Active recurring work',                     accent:'#FFB347', iconBg:'rgba(255,179,71,0.1)' },
     { icon:'⏳', value:ns,    label:'Not Started',      sub:'Yet to begin',                              accent:'#8B97A8', iconBg:'rgba(139,151,168,0.1)' },
-    { icon:'🎯', value:INITIATIVES.length, label:'Initiatives', sub:'Core L&D programmes',              accent:'#f46262', iconBg:'rgba(244,98,98,0.1)' },
+    { icon:'🎯', value:INITIATIVES.length, label:'Initiatives', sub:'Core L&D programmes',              accent:'#00D4AA', iconBg:'rgba(0,212,170,0.1)' },
   ];
 
   document.getElementById('stats-grid').innerHTML = cards.map(c => `
@@ -226,7 +223,7 @@ function isDark() { return window.matchMedia && window.matchMedia('(prefers-colo
 function renderCharts() {
   const dark = isDark();
   const textColor = dark ? '#9BA3C8' : '#5A6178';
-  const gridColor = dark ? 'rgba(48,73,109,0.12)' : 'rgba(48,73,109,0.07)';
+  const gridColor = dark ? 'rgba(108,99,255,0.09)' : 'rgba(108,99,255,0.07)';
 
   const statusMap = { 'Completed':0,'In Progress':0,'On Going':0,'Not Started':0 };
   activities.forEach(a => { if (statusMap[a.status] !== undefined) statusMap[a.status]++; });
@@ -242,14 +239,14 @@ function renderCharts() {
   const typeMap = {};
   activities.forEach(a => { const t = a.type || 'None'; typeMap[t] = (typeMap[t]||0)+1; });
 
-  const plug = { legend:{ labels:{ color:textColor, font:{ family:'Plus Jakarta Sans', size:12 } } } };
+  const plug = { legend:{ labels:{ color:textColor, font:{ family:'Inter', size:12 } } } };
 
   if (chartStatus) chartStatus.destroy();
   chartStatus = new Chart(document.getElementById('chart-status'), {
     type:'doughnut',
     data:{ labels:Object.keys(statusMap), datasets:[{
       data:Object.values(statusMap),
-      backgroundColor:['#00C896','#30496d','#FFB347','#8B97A8'],
+      backgroundColor:['#00C896','#6C63FF','#FFB347','#8B97A8'],
       borderWidth:2, borderColor: dark?'#13152A':'#FFF', hoverOffset:8,
     }]},
     options:{ responsive:true, maintainAspectRatio:true, cutout:'65%', plugins:{ ...plug } },
@@ -261,12 +258,12 @@ function renderCharts() {
     data:{ labels:Object.keys(ownerMap), datasets:[{
       label:'Activities',
       data:Object.values(ownerMap),
-      backgroundColor:['rgba(244,98,98,0.75)','rgba(48,73,109,0.75)','rgba(0,200,150,0.75)','rgba(255,179,71,0.75)'],
-      borderRadius:6, borderSkipped:false,
+      backgroundColor:['rgba(255,107,157,0.75)','rgba(108,99,255,0.75)','rgba(0,212,170,0.75)','rgba(255,107,107,0.75)','rgba(255,179,71,0.65)'],
+      borderRadius:8, borderSkipped:false,
     }]},
     options:{ responsive:true, maintainAspectRatio:true, plugins:{ ...plug, legend:{ display:false } },
-      scales:{ x:{ ticks:{ color:textColor, font:{family:'Plus Jakarta Sans',size:11} }, grid:{ color:gridColor } },
-               y:{ ticks:{ color:textColor, font:{family:'Plus Jakarta Sans',size:11}, stepSize:1 }, grid:{ color:gridColor }, beginAtZero:true } } },
+      scales:{ x:{ ticks:{ color:textColor, font:{family:'Inter',size:11} }, grid:{ color:gridColor } },
+               y:{ ticks:{ color:textColor, font:{family:'Inter',size:11}, stepSize:1 }, grid:{ color:gridColor }, beginAtZero:true } } },
   });
 
   if (chartType) chartType.destroy();
@@ -274,12 +271,12 @@ function renderCharts() {
     type:'bar',
     data:{ labels:Object.keys(typeMap), datasets:[{
       label:'Count', data:Object.values(typeMap),
-      backgroundColor:'rgba(48,73,109,0.65)', borderRadius:6, borderSkipped:false,
+      backgroundColor:'rgba(0,212,170,0.65)', borderRadius:8, borderSkipped:false,
     }]},
     options:{ indexAxis:'y', responsive:true, maintainAspectRatio:true,
       plugins:{ ...plug, legend:{ display:false } },
-      scales:{ x:{ ticks:{ color:textColor, font:{family:'Plus Jakarta Sans',size:11}, stepSize:1 }, grid:{ color:gridColor }, beginAtZero:true },
-               y:{ ticks:{ color:textColor, font:{family:'Plus Jakarta Sans',size:11} }, grid:{ color:gridColor } } } },
+      scales:{ x:{ ticks:{ color:textColor, font:{family:'Inter',size:11}, stepSize:1 }, grid:{ color:gridColor }, beginAtZero:true },
+               y:{ ticks:{ color:textColor, font:{family:'Inter',size:11} }, grid:{ color:gridColor } } } },
   });
 }
 
@@ -375,7 +372,7 @@ function renderInitiatives() {
     const linked = activities.filter(a => a.initiative === init.name);
     const done   = linked.filter(a => a.status === 'Completed').length;
     const pct    = linked.length ? Math.round((done/linked.length)*100) : 0;
-    const color  = INIT_COLORS[init.category] || '#30496d';
+    const color  = INIT_COLORS[init.category] || '#6C63FF';
 
     const actRows = linked.length
       ? linked.map(a => `
@@ -607,7 +604,7 @@ function openModal(id=null) {
   } else {
     document.getElementById('modal-title').textContent = '➕ Add Activity';
     document.getElementById('modal-save-btn').textContent = 'Save Activity';
-    document.getElementById('f-start').value = new Date().toISOString().slice(0,10);
+    document.getElementById('f-start').value = '2026-04-03';
   }
   document.getElementById('modal-overlay').classList.add('open');
 }
@@ -638,9 +635,6 @@ function saveActivity(e) {
   } else {
     activities.push({ id:nextId++, ...data });
     showToast('🎉 Activity added!','success');
-
-    // Schedule email reminder: task due tomorrow → send email today
-    scheduleEmailReminder(data);
   }
 
   saveData(); closeModal(); renderAll();
@@ -705,7 +699,7 @@ function toggleReminders(enabled) {
         localStorage.setItem('ld_reminders_enabled','1');
         document.getElementById('reminder-status').style.display='block';
         startReminderCheck();
-        showToast('🔔 Reminders enabled! You will receive desktop alerts & calendar-style notifications.','success');
+        showToast('🔔 Reminders enabled! You will receive desktop alerts.','success');
       } else {
         document.getElementById('enable-reminders').checked = false;
         showToast('⚠️ Please allow notifications in browser settings.','error');
@@ -736,7 +730,7 @@ function checkAndSendReminders() {
     taskDay.setHours(0,0,0,0);
     const diffDays = (taskDay - today) / (1000*60*60*24);
 
-    // 1 day before — send email today about tomorrow's task
+    // 1 day before
     if (diffDays === 1) {
       const key = `rem1d_${a.id}_${rawDate}`;
       if (!localStorage.getItem(key)) {
@@ -745,7 +739,7 @@ function checkAndSendReminders() {
       }
     }
 
-    // Same day — fire between 8–9 AM (1 hour before)
+    // Same day — fire between 8–9 AM
     if (diffDays === 0) {
       const hr = now.getHours();
       const key = `rem1h_${a.id}_${rawDate}`;
@@ -758,15 +752,10 @@ function checkAndSendReminders() {
 }
 
 function fireReminder(activity, title, body) {
-  // Desktop notification (Google Calendar style)
+  // Desktop notification
   try {
-    const n = new Notification(title, {
-      body,
-      icon: '📚',
-      tag: `ld_${activity.id}`,
-      requireInteraction: true,
-    });
-    n.onclick = () => { window.focus(); navigate('calendar'); };
+    const n = new Notification(title, { body, icon:'📚', tag: `ld_${activity.id}` });
+    n.onclick = () => { window.focus(); navigate('activities'); };
   } catch {}
   // In-app toast
   showToast(`${title}: ${activity.name}`, title.includes('🚨')?'error':'info');
@@ -786,35 +775,10 @@ function sendReminderEmail(activity, alertTitle) {
   const body = encodeURIComponent(
     `Hi ${activity.owner},\n\n${alertTitle}\n\nActivity: ${activity.name}\nStatus: ${activity.status}\n${activity.endDate?`Due: ${fmtDate(activity.endDate)}`:'Start: ' + fmtDate(activity.startDate)}\nInitiative: ${activity.initiative||'—'}\n\nPlease check the L&D Tracker for details.\n\nL&D Team`
   );
-  // Open mailto (will open email client)
+  // Open mailto (will open email client silently)
   const link = document.createElement('a');
   link.href = `mailto:${ownerEmails.join(';')}?subject=${subject}&body=${body}`;
   link.click();
-}
-
-// Schedule email for newly added task
-function scheduleEmailReminder(data) {
-  if (!data.endDate && !data.startDate) return;
-  const taskDate = new Date(data.endDate || data.startDate);
-  const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  taskDate.setHours(0,0,0,0);
-  const diffDays = (taskDate - today) / (1000*60*60*24);
-
-  // If task is due tomorrow, send reminder email now
-  if (diffDays === 1) {
-    setTimeout(() => {
-      sendReminderEmail(data, '📅 Task due TOMORROW');
-      showToast('📧 Reminder email sent for tomorrow\'s task!', 'success');
-    }, 1000);
-  }
-  // If task is for today (same day), send 1-hour reminder
-  if (diffDays === 0) {
-    setTimeout(() => {
-      sendReminderEmail(data, '🚨 Task due TODAY');
-      showToast('📧 Same-day task reminder sent!', 'success');
-    }, 1000);
-  }
 }
 
 /* ── 15. GOOGLE SHEETS SYNC ── */
@@ -829,7 +793,7 @@ async function syncFromSheets() {
   const status = document.getElementById('sync-status');
   btn.textContent = '⏳ Syncing…'; btn.disabled = true;
   status.style.display = 'block';
-  status.style.cssText = 'display:block;padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:12px;line-height:1.6;background:rgba(48,73,109,0.06);border:1px solid rgba(48,73,109,0.18);color:var(--text-secondary)';
+  status.style.cssText = 'display:block;padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:12px;line-height:1.6;background:rgba(108,99,255,0.06);border:1px solid rgba(108,99,255,0.18);color:var(--text-secondary)';
   status.textContent = '⏳ Connecting to Google Sheets…';
 
   try {
@@ -854,8 +818,8 @@ async function syncFromSheets() {
     showToast(`✅ ${newCount} new activities from Google Sheets!`,'success');
 
   } catch (err) {
-    status.style.background = 'rgba(244,98,98,0.07)';
-    status.style.border = '1px solid rgba(244,98,98,0.2)';
+    status.style.background = 'rgba(255,107,107,0.07)';
+    status.style.border = '1px solid rgba(255,107,107,0.2)';
     status.style.color = 'var(--brand-accent)';
     status.innerHTML = `❌ <strong>Could not sync.</strong><br/>
     Make sure the sheet is <em>published to web</em> (File → Share → Publish to web → CSV).<br/>
@@ -911,42 +875,18 @@ function mapStatus(s) {
   return 'Not Started';
 }
 
-/* ── 16. EXPORT CSV (with popup modal) ── */
-function openExportModal() {
-  const total = activities.length;
-  const done  = activities.filter(a=>a.status==='Completed').length;
-  const inp   = activities.filter(a=>a.status==='In Progress').length;
-  const ong   = activities.filter(a=>a.status==='On Going').length;
-  const ns    = activities.filter(a=>a.status==='Not Started').length;
-
-  document.getElementById('export-summary').innerHTML = `
-    • <strong>${total}</strong> total activities<br/>
-    • <strong>${done}</strong> completed · <strong>${inp}</strong> in progress · <strong>${ong}</strong> on going · <strong>${ns}</strong> not started<br/>
-    • <strong>${INITIATIVES.length}</strong> initiatives covered
-  `;
-  document.getElementById('export-filename').value = `LD_Tracker_${new Date().toISOString().slice(0,10)}.csv`;
-  document.getElementById('export-modal-overlay').classList.add('open');
-}
-
-function closeExportModal() { document.getElementById('export-modal-overlay').classList.remove('open'); }
-function onExportOverlayClick(e) { if (e.target===document.getElementById('export-modal-overlay')) closeExportModal(); }
-
-function doExportCSV() {
-  const filename = document.getElementById('export-filename').value || `LD_Tracker_${new Date().toISOString().slice(0,10)}.csv`;
+/* ── 16. EXPORT CSV ── */
+function exportCSV() {
   const headers = ['Sr No','Name of Activity','Owner','Initiative','Start Date','End Date','Status','Type','Notes'];
   const rows = activities.map((a,i)=>[i+1,a.name,a.owner,a.initiative,a.startDate,a.endDate,a.status,a.type,a.notes].map(v=>`"${(v||'').replace(/"/g,'""')}"`));
   const csv = [headers.join(','),...rows.map(r=>r.join(','))].join('\n');
   const blob = new Blob([csv],{type:'text/csv'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href=url; a.download=filename; a.click();
+  a.href=url; a.download=`LD_Tracker_${new Date().toISOString().slice(0,10)}.csv`; a.click();
   URL.revokeObjectURL(url);
-  showToast('⬇️ CSV exported successfully!','success');
-  closeExportModal();
+  showToast('⬇️ CSV exported!','success');
 }
-
-// Keep backward compatibility
-function exportCSV() { openExportModal(); }
 
 /* ── 17. TOAST ── */
 function showToast(msg, type='info') {
@@ -973,7 +913,7 @@ function rowClass(status) {
 }
 
 function statusColor(status) {
-  return { 'Completed':'#00C896','In Progress':'#30496d','On Going':'#FFB347','Not Started':'#8B97A8' }[status]||'#30496d';
+  return { 'Completed':'#00C896','In Progress':'#6C63FF','On Going':'#FFB347','Not Started':'#8B97A8' }[status]||'#6C63FF';
 }
 
 function statusIcon(status) {
