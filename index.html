@@ -14,8 +14,8 @@
 
 <!-- ══════════ SIDEBAR ══════════ -->
 <aside class="sidebar" id="sidebar">
-  <div class="sidebar-logo">
-    <div class="logo-icon">
+  <div class="sidebar-logo" onclick="openLogoModal()" style="cursor:pointer" title="Click to customize Logo & Email Template">
+    <div class="logo-icon" id="sidebar-logo-icon">
       <svg width="26" height="26" viewBox="0 0 26 26" fill="none">
         <path d="M4 3C4 1.9 4.9 1 6 1H17L22 6V23C22 24.1 21.1 25 20 25H6C4.9 25 4 24.1 4 23V3Z" fill="white" opacity="0.9"/>
         <path d="M17 1L22 6H17V1Z" fill="white" opacity="0.6"/>
@@ -25,7 +25,7 @@
         <circle cx="19" cy="16" r="1.5" fill="white" opacity="0.6"/>
       </svg>
     </div>
-    <div class="logo-title">L&D Tracker</div>
+    <div class="logo-title">L&D Tracker <span style="font-size:11px;opacity:0.7">⚙️</span></div>
     <div class="logo-subtitle">Learning &amp; Development</div>
   </div>
 
@@ -99,6 +99,36 @@
   <!-- ══ PAGE: DASHBOARD ══ -->
   <section class="page active" id="page-dashboard">
     <div class="stats-strip" id="stats-strip"></div>
+
+    <!-- Click-on-Name Interactive Activities View -->
+    <div class="filtered-owner-activities-card" id="dashboard-owner-detail" style="display:none; margin-bottom:24px;">
+      <div class="section-header" style="margin-bottom:12px">
+        <div>
+          <div class="section-title" id="dashboard-owner-detail-title">📋 Activities Breakdown</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:2px" id="dashboard-owner-detail-sub">Click any other name in the boxes above to filter</div>
+        </div>
+        <div class="section-actions">
+          <button class="btn btn-secondary btn-sm" onclick="closeDashboardOwnerDetail()">✕ Close View</button>
+        </div>
+      </div>
+      <div class="table-wrapper">
+        <table class="compact-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Activity Name</th>
+              <th>Owner</th>
+              <th>Initiative</th>
+              <th>Schedule</th>
+              <th>Status</th>
+              <th>Type</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="dashboard-owner-detail-tbody"></tbody>
+        </table>
+      </div>
+    </div>
 
     <div class="charts-grid">
       <div class="chart-card">
@@ -222,8 +252,9 @@
   <!-- ══ PAGE: CALENDAR ══ -->
   <section class="page" id="page-calendar">
     <div class="section-header">
-      <div class="section-title">📅 Task Calendar</div>
+      <div class="section-title">📅 Task & Meeting Calendar</div>
       <div class="section-actions">
+        <button class="btn btn-primary btn-sm" onclick="openEventModal()">＋ Schedule Meeting / Event</button>
         <button class="btn btn-secondary btn-sm" onclick="calPrev()">◀ Prev</button>
         <span class="cal-month-label" id="cal-month-label"></span>
         <button class="btn btn-secondary btn-sm" onclick="calNext()">Next ▶</button>
@@ -339,12 +370,29 @@
           </select>
         </div>
         <div class="form-group">
-          <label class="form-label">Start Date</label>
-          <input type="date" id="f-start" />
+          <label class="form-label">Start Date & Time</label>
+          <div style="display:flex;gap:6px">
+            <input type="date" id="f-start" style="flex:1" />
+            <input type="time" id="f-start-time" style="width:105px" title="Start Time" />
+          </div>
         </div>
         <div class="form-group">
-          <label class="form-label">End Date</label>
-          <input type="date" id="f-end" />
+          <label class="form-label">End Date & Time</label>
+          <div style="display:flex;gap:6px">
+            <input type="date" id="f-end" style="flex:1" />
+            <input type="time" id="f-end-time" style="width:105px" title="End Time / Due Time" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Reminder Alert</label>
+          <select id="f-reminder">
+            <option value="1day">1 day before (Default)</option>
+            <option value="10min">10 minutes before</option>
+            <option value="20min">20 minutes before</option>
+            <option value="30min">30 minutes before</option>
+            <option value="1hour">1 hour before</option>
+            <option value="none">No reminder</option>
+          </select>
         </div>
         <div class="form-group">
           <label class="form-label">Type of Project</label>
@@ -508,9 +556,120 @@
   </div>
 </div>
 
+<!-- ══════════ SCHEDULE MEETING / EVENT MODAL ══════════ -->
+<div class="modal-overlay" id="event-modal-overlay" onclick="onEventOverlayClick(event)">
+  <div class="modal" style="max-width:540px">
+    <div class="modal-title">📅 Schedule Meeting / Event</div>
+    <form id="event-form" onsubmit="saveEvent(event)">
+      <div class="form-grid">
+        <div class="form-group full">
+          <label class="form-label">Meeting / Event Title *</label>
+          <input type="text" id="fe-title" required placeholder="e.g. 1:1 Connect Session / Team Sync" />
+        </div>
+        <div class="form-group full">
+          <label class="form-label">Attendees / Owners *</label>
+          <div class="owner-checkboxes" id="fe-owner-checkboxes">
+            <label class="owner-cb"><input type="checkbox" name="fe-owner" value="Tejashri" /> Tejashri</label>
+            <label class="owner-cb"><input type="checkbox" name="fe-owner" value="Tanaya" /> Tanaya</label>
+            <label class="owner-cb"><input type="checkbox" name="fe-owner" value="Nikhil" /> Nikhil</label>
+            <label class="owner-cb"><input type="checkbox" name="fe-owner" value="Deepraj" /> Deepraj</label>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Meeting Date *</label>
+          <input type="date" id="fe-date" required />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Reminder Before *</label>
+          <select id="fe-reminder">
+            <option value="10">10 minutes before</option>
+            <option value="20" selected>20 minutes before</option>
+            <option value="30">30 minutes before</option>
+            <option value="60">1 hour before</option>
+            <option value="1440">1 day before</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Start Time *</label>
+          <input type="time" id="fe-start-time" required value="10:00" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">End Time *</label>
+          <input type="time" id="fe-end-time" required value="10:45" />
+        </div>
+        <div class="form-group full">
+          <label class="form-label">Meeting Link / Location</label>
+          <input type="text" id="fe-link" placeholder="e.g. https://meet.google.com/xxx-xxxx-xxx or Room A" />
+        </div>
+        <div class="form-group full">
+          <label class="form-label">Notes & Agenda</label>
+          <textarea id="fe-notes" placeholder="Agenda points, topics to discuss..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer" style="flex-wrap:wrap;gap:8px">
+        <button type="button" class="btn btn-secondary" onclick="closeEventModal()">Cancel</button>
+        <button type="submit" class="btn btn-secondary" id="event-save-btn">Save to Tracker</button>
+        <button type="button" class="btn btn-primary" onclick="saveEventAndOpenGCal()" style="background:#0F9D58">
+          📅 Save & Open in Google Calendar
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ══════════ LOGO & EMAIL TEMPLATE SETTINGS MODAL ══════════ -->
+<div class="modal-overlay" id="logo-modal-overlay" onclick="onLogoOverlayClick(event)">
+  <div class="modal" style="max-width:620px">
+    <div class="modal-title">⚙️ App Logo & Email Template Settings</div>
+    <p style="color:var(--text-secondary);font-size:12px;margin-bottom:18px">
+      Customize the tracker branding and edit the 1-day reminder email format sent to task owners.
+    </p>
+
+    <div style="background:var(--bg-input);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:18px">
+      <div style="font-weight:700;font-size:13px;color:var(--text-primary);margin-bottom:8px">🖼️ Tracker Logo</div>
+      <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+        <div id="logo-preview-box" style="width:50px;height:50px;border-radius:12px;background:linear-gradient(135deg,var(--brand-primary),var(--brand-secondary));display:flex;align-items:center;justify-content:center;overflow:hidden">
+          <span id="logo-preview-inner" style="font-size:24px">🎓</span>
+        </div>
+        <div style="flex:1;min-width:200px">
+          <label class="form-label" style="margin-bottom:4px">Upload Custom Image / Icon</label>
+          <input type="file" id="logo-file-input" accept="image/*" onchange="handleLogoUpload(event)" style="font-size:11px;padding:4px" />
+          <div style="margin-top:6px;display:flex;gap:6px">
+            <button type="button" class="btn btn-secondary btn-sm" onclick="setPresetLogo('book')">📖 Book + AI</button>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="setPresetLogo('grad')">🎓 Graduation</button>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="setPresetLogo('brain')">🧠 AI Brain</button>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="resetDefaultLogo()">Default</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="background:var(--bg-input);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:16px">
+      <div style="font-weight:700;font-size:13px;color:var(--text-primary);margin-bottom:8px">📧 1-Day Reminder Email Template</div>
+      <div class="form-group" style="margin-bottom:10px">
+        <label class="form-label">Subject Format</label>
+        <input type="text" id="tpl-subject" value="Gentle Reminder: [Activity Name] is due tomorrow" style="width:100%" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Body Format</label>
+        <textarea id="tpl-body" style="width:100%;min-height:160px;font-family:monospace;font-size:11.5px;line-height:1.5"></textarea>
+      </div>
+      <div style="font-size:10px;color:var(--text-muted);margin-top:6px">
+        Available tags: <code style="background:var(--bg-hover);padding:1px 4px;border-radius:3px">[Activity Name]</code>, <code style="background:var(--bg-hover);padding:1px 4px;border-radius:3px">[Owner Name]</code>, <code style="background:var(--bg-hover);padding:1px 4px;border-radius:3px">[End Date]</code>, <code style="background:var(--bg-hover);padding:1px 4px;border-radius:3px">[Initiative]</code>, <code style="background:var(--bg-hover);padding:1px 4px;border-radius:3px">[Status]</code>
+      </div>
+    </div>
+
+    <div class="modal-footer" style="flex-wrap:wrap;gap:8px">
+      <button type="button" class="btn btn-secondary" onclick="resetEmailTemplateToDefault()">Reset to Default</button>
+      <button type="button" class="btn btn-secondary" onclick="closeLogoModal()">Cancel</button>
+      <button type="button" class="btn btn-primary" onclick="saveTemplateSettings()">💾 Save Settings</button>
+    </div>
+  </div>
+</div>
+
 <!-- Toast Container -->
 <div class="toast-container" id="toast-container"></div>
 
-<script src="app.js?v=3.0"></script>
+<script src="app.js?v=3.1"></script>
 </body>
 </html>

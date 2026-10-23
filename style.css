@@ -415,10 +415,43 @@ body {
   padding: 3px 6px;
   border-radius: 5px;
   background: rgba(48, 73, 109, 0.05);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
 }
 
 .stat-owner-row:hover {
-  background: rgba(48, 73, 109, 0.1);
+  background: rgba(48, 73, 109, 0.15);
+  transform: translateX(2px);
+}
+
+.stat-owner-row.active-owner-filter {
+  background: rgba(48, 73, 109, 0.2) !important;
+  outline: 1.5px solid var(--brand-primary);
+  font-weight: 700;
+}
+
+.filtered-owner-activities-card {
+  background: var(--bg-card);
+  border: 1.5px solid var(--border-strong);
+  border-radius: 12px;
+  padding: 18px 20px;
+  box-shadow: var(--shadow-md);
+  animation: fadeSlide 0.25s ease;
+}
+
+.cal-task-chip.chip-event {
+  background: rgba(138, 75, 175, 0.18) !important;
+  color: #7B1FA2 !important;
+  border: 1px solid rgba(123, 31, 162, 0.3);
+  font-weight: 700;
+}
+
+@media (prefers-color-scheme: dark) {
+  .cal-task-chip.chip-event {
+    color: #CE93D8 !important;
+    background: rgba(206, 147, 216, 0.2) !important;
+  }
 }
 
 .stat-owner-name {

@@ -64,6 +64,34 @@ const TEAM_EMAILS = [
 
 const OWNERS = ['Tejashri', 'Tanaya', 'Nikhil', 'Deepraj'];
 
+const OWNER_EMAIL_MAP = {
+  'Tejashri': 'tejashri.sapkal@onixnet.com',
+  'Tanaya':   'tanaya.sankapal@onixnet.com',
+  'Nikhil':   'nikhil.shelke@onixnet.com',
+  'Deepraj':  'deepraj.bhosale@onixnet.com',
+};
+
+const DEFAULT_EMAIL_TEMPLATE = {
+  subject: 'Gentle Reminder: [Activity Name] is due tomorrow',
+  body: `Hi [Owner Name],
+
+This is a quick reminder that the following task is scheduled to be completed by [End Date]:
+
+Activity Name: [Activity Name]
+Initiative: [Initiative]
+Status: [Status]
+End Date: [End Date]
+
+Please ensure the status is updated in the L&D Tracker once completed. Let me know if you need any support or if the timeline needs adjusting.
+
+Best regards,
+L&D Team`
+};
+
+let emailTemplate = { ...DEFAULT_EMAIL_TEMPLATE };
+let calendarEvents = [];
+let currentDashboardFilter = { owner: null, status: null };
+
 const GOOGLE_SHEET_URL = 'https://docs.google.com/spreadsheets/d/1B5cI9UpRKemHf7OnwanVR9Lz-JUIpjwgVLgUOVIk6qY/edit?gid=2050775428#gid=2050775428';
 
 /* ──────────────────────────────────────────
@@ -87,12 +115,16 @@ let calMonth = new Date().getMonth(); // 0-indexed
 document.addEventListener('DOMContentLoaded', () => {
   loadData();
   loadInitiatives();
+  loadEmailTemplate();
+  loadCalendarEvents();
+  loadCustomLogo();
   populateDropdowns();
   updateSidebarDate();
   renderAll();
   setInterval(updateSidebarDate, 60000);
   checkReminders();
-  setInterval(checkReminders, 3600000); // check every hour
+  setInterval(checkReminders, 3600000); // check task due dates every hour
+  setInterval(checkMeetingReminders, 60000); // check meeting alerts every minute
   requestNotificationPermission();
 });
 
@@ -113,6 +145,35 @@ function loadInitiatives() {
   const stored = localStorage.getItem('ld_tracker_initiatives_v3');
   if (stored) {
     try { INITIATIVES = JSON.parse(stored); } catch {}
+  }
+}
+
+function loadEmailTemplate() {
+  const stored = localStorage.getItem('ld_tracker_email_template');
+  if (stored) {
+    try { emailTemplate = JSON.parse(stored); } catch { emailTemplate = { ...DEFAULT_EMAIL_TEMPLATE }; }
+  } else {
+    emailTemplate = { ...DEFAULT_EMAIL_TEMPLATE };
+  }
+}
+
+function loadCalendarEvents() {
+  const stored = localStorage.getItem('ld_tracker_events_v2');
+  if (stored) {
+    try { calendarEvents = JSON.parse(stored); } catch { calendarEvents = []; }
+  } else {
+    calendarEvents = [];
+  }
+}
+
+function saveCalendarEvents() {
+  localStorage.setItem('ld_tracker_events_v2', JSON.stringify(calendarEvents));
+}
+
+function loadCustomLogo() {
+  const stored = localStorage.getItem('ld_tracker_custom_logo');
+  if (stored) {
+    applyLogo(stored);
   }
 }
 
@@ -252,12 +313,13 @@ function renderStatsStrip() {
   const ongoingOwners = getOwnerCounts('On Going');
   const notStartedOwners = getOwnerCounts('Not Started');
 
+  // Order: Total Registered -> In Progress -> On Going -> Not Started -> Completed (Completed is AFTER Not Started)
   const cells = [
-    { value: total,      label: 'Total Registered', accent: '#30496d', owners: totalOwners },
-    { value: completed,  label: 'Completed',        accent: '#00C896', owners: completedOwners },
-    { value: inprogress, label: 'In Progress',      accent: '#30496d', owners: inprogressOwners },
-    { value: ongoing,    label: 'On Going',         accent: '#f46262', owners: ongoingOwners },
-    { value: notStarted, label: 'Not Started',      accent: '#8B97A8', owners: notStartedOwners },
+    { value: total,      label: 'Total Registered', accent: '#30496d', owners: totalOwners, status: null },
+    { value: inprogress, label: 'In Progress',      accent: '#30496d', owners: inprogressOwners, status: 'In Progress' },
+    { value: ongoing,    label: 'On Going',         accent: '#f46262', owners: ongoingOwners, status: 'On Going' },
+    { value: notStarted, label: 'Not Started',      accent: '#8B97A8', owners: notStartedOwners, status: 'Not Started' },
+    { value: completed,  label: 'Completed',        accent: '#00C896', owners: completedOwners, status: 'Completed' },
   ];
 
   document.getElementById('stats-strip').innerHTML = cells.map(c => `
@@ -266,7 +328,9 @@ function renderStatsStrip() {
       <div class="stat-label">${c.label}</div>
       <div class="stat-owner-list">
         ${OWNERS.map(o => `
-          <div class="stat-owner-row">
+          <div class="stat-owner-row ${currentDashboardFilter.owner === o && currentDashboardFilter.status === (c.status || '') ? 'active-owner-filter' : ''}" 
+               onclick="selectDashboardOwnerFilter('${o}', '${c.status || ''}', this)" 
+               title="Click to view ${o}'s ${c.label} activities">
             <span class="stat-owner-name">${o}</span>
             <span class="stat-owner-num" style="background:${c.accent}">${c.owners[o] || 0}</span>
           </div>
@@ -274,6 +338,75 @@ function renderStatsStrip() {
       </div>
     </div>
   `).join('');
+}
+
+function selectDashboardOwnerFilter(owner, status, elem) {
+  // If clicking same owner and status, toggle off
+  if (currentDashboardFilter.owner === owner && currentDashboardFilter.status === status) {
+    closeDashboardOwnerDetail();
+    return;
+  }
+
+  currentDashboardFilter = { owner, status };
+
+  // Highlight active row in UI
+  document.querySelectorAll('.stat-owner-row').forEach(r => r.classList.remove('active-owner-filter'));
+  if (elem) elem.classList.add('active-owner-filter');
+
+  // Filter activities
+  const matching = activities.filter(a => {
+    const ownerMatches = (a.owner || '').toLowerCase().includes(owner.toLowerCase());
+    const statusMatches = status ? a.status === status : true;
+    return ownerMatches && statusMatches;
+  });
+
+  const detailBox = document.getElementById('dashboard-owner-detail');
+  const title = document.getElementById('dashboard-owner-detail-title');
+  const sub = document.getElementById('dashboard-owner-detail-sub');
+  const tbody = document.getElementById('dashboard-owner-detail-tbody');
+  if (!detailBox || !title || !tbody) return;
+
+  const statusLabel = status ? status : 'Total Registered';
+  title.innerHTML = `👤 <strong>${esc(owner)}</strong> — <span style="color:var(--brand-primary)">${esc(statusLabel)} Activities</span> (${matching.length})`;
+  sub.textContent = matching.length
+    ? `Showing all ${matching.length} activity items assigned to ${owner} under "${statusLabel}". Click any other name above to switch.`
+    : `No activities found for ${owner} under "${statusLabel}".`;
+
+  if (!matching.length) {
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--text-muted)">No ${esc(statusLabel)} activities found for ${esc(owner)}.</td></tr>`;
+  } else {
+    tbody.innerHTML = matching.map((a, i) => `
+      <tr>
+        <td style="font-weight:700;color:var(--text-muted)">${i + 1}</td>
+        <td style="font-weight:600">
+          ${esc(a.name)}
+          ${a.notes ? `<small style="display:block;color:var(--text-muted);font-weight:400;font-size:10px">📝 ${esc(a.notes.substring(0,35))}${a.notes.length>35?'…':''}</small>` : ''}
+        </td>
+        <td><span class="owner-chip">${esc(a.owner)}</span></td>
+        <td style="font-size:11px;color:var(--text-secondary)">${esc(a.initiative || '—')}</td>
+        <td style="font-size:11px;white-space:nowrap">${fmtDate(a.startDate)}${a.startTime ? ' ' + a.startTime : ''} → ${fmtDate(a.endDate)}${a.endTime ? ' ' + a.endTime : ''}</td>
+        <td><span class="badge ${badgeClass(a.status)}">${a.status}</span></td>
+        <td>${a.type ? `<span class="type-tag">${esc(a.type)}</span>` : '<span style="color:var(--text-muted)">—</span>'}</td>
+        <td>
+          <div class="action-btns">
+            <button class="btn btn-sm btn-secondary" onclick="editActivity(${a.id})" title="Edit Activity">✏️</button>
+            <a class="btn btn-sm btn-secondary" href="${buildGCalUrl(a)}" target="_blank" title="Add to Google Calendar">📅</a>
+            <button class="btn btn-sm btn-primary" onclick="sendCustomReminderEmail(${a.id})" title="Send Reminder Email">📧</button>
+          </div>
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  detailBox.style.display = 'block';
+  detailBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function closeDashboardOwnerDetail() {
+  currentDashboardFilter = { owner: null, status: null };
+  document.querySelectorAll('.stat-owner-row').forEach(r => r.classList.remove('active-owner-filter'));
+  const detailBox = document.getElementById('dashboard-owner-detail');
+  if (detailBox) detailBox.style.display = 'none';
 }
 
 function getChartColors(isDark) {
