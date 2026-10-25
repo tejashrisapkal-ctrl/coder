@@ -432,82 +432,127 @@ function renderStatsMatrix() {
   const ongoingAll = activities.filter(a => a.status === 'On Going').length;
   const completedAll = activities.filter(a => a.status === 'Completed').length;
 
-  let html = `
-    <table class="matrix-table">
-      <thead>
-        <tr>
-          <th>👤 Team Member</th>
-          <th>📋 Total Assigned</th>
-          <th>🔄 In Progress</th>
-          <th>⏳ Not Started</th>
-          <th>🔵 Ongoing activities</th>
-          <th>✅ Completed</th>
-        </tr>
-      </thead>
-      <tbody>
-  `;
-
-  OWNERS.forEach(owner => {
-    const isOwnerActive = activeMatrixFilter.owner === owner;
-    const isTotalActive = isOwnerActive && activeMatrixFilter.status === null;
-    const isInpActive = isOwnerActive && activeMatrixFilter.status === 'In Progress';
-    const isNotActive = isOwnerActive && activeMatrixFilter.status === 'Not Started';
-    const isOngActive = isOwnerActive && activeMatrixFilter.status === 'On Going';
-    const isCompActive = isOwnerActive && activeMatrixFilter.status === 'Completed';
-
-    html += `
-      <tr>
-        <td>
-          <span style="cursor:pointer;" onclick="filterDashboardByMatrix('${owner}', null)" title="View all activities for ${owner}">
-            <strong style="color:var(--brand-primary);">${owner}</strong>
-          </span>
-        </td>
-        <td>
-          <span class="matrix-chip chip-total ${isTotalActive ? 'active' : ''}" onclick="filterDashboardByMatrix('${owner}', null)" title="View Total Assigned for ${owner}">
-            ${totalAssignedOwners[owner] || 0}
-          </span>
-        </td>
-        <td>
-          <span class="matrix-chip chip-inprogress ${isInpActive ? 'active' : ''}" onclick="filterDashboardByMatrix('${owner}', 'In Progress')" title="View In Progress for ${owner}">
-            ${inprogressOwners[owner] || 0}
-          </span>
-        </td>
-        <td>
-          <span class="matrix-chip chip-notstarted ${isNotActive ? 'active' : ''}" onclick="filterDashboardByMatrix('${owner}', 'Not Started')" title="View Not Started for ${owner}">
-            ${notStartedOwners[owner] || 0}
-          </span>
-        </td>
-        <td>
-          <span class="matrix-chip chip-ongoing ${isOngActive ? 'active' : ''}" onclick="filterDashboardByMatrix('${owner}', 'On Going')" title="View Ongoing activities for ${owner}">
-            ${ongoingOwners[owner] || 0}
-          </span>
-        </td>
-        <td>
-          <span class="matrix-chip chip-completed ${isCompActive ? 'active' : ''}" onclick="filterDashboardByMatrix('${owner}', 'Completed')" title="View Completed for ${owner}">
-            ${completedOwners[owner] || 0}
-          </span>
-        </td>
-      </tr>
-    `;
-  });
-
   const isTotalAllActive = activeMatrixFilter.owner === null && activeMatrixFilter.status === null && activeMatrixFilter.hasFilter;
   const isInpAllActive = activeMatrixFilter.owner === null && activeMatrixFilter.status === 'In Progress';
   const isNotAllActive = activeMatrixFilter.owner === null && activeMatrixFilter.status === 'Not Started';
   const isOngAllActive = activeMatrixFilter.owner === null && activeMatrixFilter.status === 'On Going';
   const isCompAllActive = activeMatrixFilter.owner === null && activeMatrixFilter.status === 'Completed';
 
-  html += `
-      <tr class="matrix-total-row">
-        <td><strong>📊 Team Total</strong></td>
-        <td><span class="matrix-chip chip-total ${isTotalAllActive ? 'active' : ''}" onclick="filterDashboardByMatrix(null, null)">${totalAll}</span></td>
-        <td><span class="matrix-chip chip-inprogress ${isInpAllActive ? 'active' : ''}" onclick="filterDashboardByMatrix(null, 'In Progress')">${inprogressAll}</span></td>
-        <td><span class="matrix-chip chip-notstarted ${isNotAllActive ? 'active' : ''}" onclick="filterDashboardByMatrix(null, 'Not Started')">${notStartedAll}</span></td>
-        <td><span class="matrix-chip chip-ongoing ${isOngAllActive ? 'active' : ''}" onclick="filterDashboardByMatrix(null, 'On Going')">${ongoingAll}</span></td>
-        <td><span class="matrix-chip chip-completed ${isCompAllActive ? 'active' : ''}" onclick="filterDashboardByMatrix(null, 'Completed')">${completedAll}</span></td>
-      </tr>
-    </tbody>
-  </table>
+  let html = `
+    <div class="stats-box-grid">
+      <!-- 1. TEAM MEMBER COLUMN -->
+      <div class="stat-box-col col-team">
+        <div class="stat-box-header" title="4 Team Members">
+          <div class="stat-box-num">4</div>
+          <div class="stat-box-label">TEAM MEMBER</div>
+        </div>
+        <div class="stat-box-rows">
+          ${OWNERS.map(owner => {
+            const isActive = activeMatrixFilter.owner === owner && activeMatrixFilter.status === null;
+            return `
+              <div class="stat-pill-row ${isActive ? 'active' : ''}" onclick="filterDashboardByMatrix('${owner}', null)" title="View all activities for ${owner}">
+                <div class="stat-pill-name">${owner}</div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+
+      <!-- 2. TOTAL ASSIGNED COLUMN -->
+      <div class="stat-box-col col-total">
+        <div class="stat-box-header ${isTotalAllActive ? 'active' : ''}" onclick="filterDashboardByMatrix(null, null)" title="View all assigned activities">
+          <div class="stat-box-num">${totalAll}</div>
+          <div class="stat-box-label">TOTAL ASSIGNED</div>
+        </div>
+        <div class="stat-box-rows">
+          ${OWNERS.map(owner => {
+            const isActive = activeMatrixFilter.owner === owner && activeMatrixFilter.status === null;
+            const cnt = totalAssignedOwners[owner] || 0;
+            return `
+              <div class="stat-pill-row ${isActive ? 'active' : ''}" onclick="filterDashboardByMatrix('${owner}', null)" title="${owner} • Total Assigned: ${cnt}">
+                <div class="stat-pill-val val-total">${cnt}</div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+
+      <!-- 3. IN PROGRESS COLUMN -->
+      <div class="stat-box-col col-inprogress">
+        <div class="stat-box-header ${isInpAllActive ? 'active' : ''}" onclick="filterDashboardByMatrix(null, 'In Progress')" title="View all In Progress activities">
+          <div class="stat-box-num">${inprogressAll}</div>
+          <div class="stat-box-label">IN PROGRESS</div>
+        </div>
+        <div class="stat-box-rows">
+          ${OWNERS.map(owner => {
+            const isActive = activeMatrixFilter.owner === owner && activeMatrixFilter.status === 'In Progress';
+            const cnt = inprogressOwners[owner] || 0;
+            return `
+              <div class="stat-pill-row ${isActive ? 'active' : ''}" onclick="filterDashboardByMatrix('${owner}', 'In Progress')" title="${owner} • In Progress: ${cnt}">
+                <div class="stat-pill-val val-inprogress">${cnt}</div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+
+      <!-- 4. NOT STARTED COLUMN -->
+      <div class="stat-box-col col-notstarted">
+        <div class="stat-box-header ${isNotAllActive ? 'active' : ''}" onclick="filterDashboardByMatrix(null, 'Not Started')" title="View all Not Started activities">
+          <div class="stat-box-num">${notStartedAll}</div>
+          <div class="stat-box-label">NOT STARTED</div>
+        </div>
+        <div class="stat-box-rows">
+          ${OWNERS.map(owner => {
+            const isActive = activeMatrixFilter.owner === owner && activeMatrixFilter.status === 'Not Started';
+            const cnt = notStartedOwners[owner] || 0;
+            return `
+              <div class="stat-pill-row ${isActive ? 'active' : ''}" onclick="filterDashboardByMatrix('${owner}', 'Not Started')" title="${owner} • Not Started: ${cnt}">
+                <div class="stat-pill-val val-notstarted">${cnt}</div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+
+      <!-- 5. ONGOING ACTIVITIES COLUMN -->
+      <div class="stat-box-col col-ongoing">
+        <div class="stat-box-header ${isOngAllActive ? 'active' : ''}" onclick="filterDashboardByMatrix(null, 'On Going')" title="View all Ongoing activities">
+          <div class="stat-box-num">${ongoingAll}</div>
+          <div class="stat-box-label">ONGOING ACTIVITIES</div>
+        </div>
+        <div class="stat-box-rows">
+          ${OWNERS.map(owner => {
+            const isActive = activeMatrixFilter.owner === owner && activeMatrixFilter.status === 'On Going';
+            const cnt = ongoingOwners[owner] || 0;
+            return `
+              <div class="stat-pill-row ${isActive ? 'active' : ''}" onclick="filterDashboardByMatrix('${owner}', 'On Going')" title="${owner} • Ongoing activities: ${cnt}">
+                <div class="stat-pill-val val-ongoing">${cnt}</div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+
+      <!-- 6. COMPLETED COLUMN -->
+      <div class="stat-box-col col-completed">
+        <div class="stat-box-header ${isCompAllActive ? 'active' : ''}" onclick="filterDashboardByMatrix(null, 'Completed')" title="View all Completed activities">
+          <div class="stat-box-num">${completedAll}</div>
+          <div class="stat-box-label">COMPLETED</div>
+        </div>
+        <div class="stat-box-rows">
+          ${OWNERS.map(owner => {
+            const isActive = activeMatrixFilter.owner === owner && activeMatrixFilter.status === 'Completed';
+            const cnt = completedOwners[owner] || 0;
+            return `
+              <div class="stat-pill-row ${isActive ? 'active' : ''}" onclick="filterDashboardByMatrix('${owner}', 'Completed')" title="${owner} • Completed: ${cnt}">
+                <div class="stat-pill-val val-completed">${cnt}</div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    </div>
   `;
 
   container.innerHTML = html;

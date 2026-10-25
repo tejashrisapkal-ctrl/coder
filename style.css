@@ -344,129 +344,164 @@ body {
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* ── Stats Matrix Card (Executive Dashboard Table) ── */
+/* ── Dashboard Stats Strip / Card Grid ── */
 .stats-matrix-card {
   background: var(--bg-card);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 14px;
   overflow: hidden;
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
   margin-bottom: 22px;
 }
 
-.matrix-table {
+.stats-box-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
   width: 100%;
-  border-collapse: collapse;
-  font-size: 12px;
-  text-align: center;
+  overflow-x: auto;
 }
 
-.matrix-table thead th {
-  background: linear-gradient(135deg, rgba(48, 73, 109, 0.08), rgba(244, 98, 98, 0.04));
-  padding: 12px 14px;
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--text-primary);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  border-bottom: 2px solid var(--border-strong);
+.stat-box-col {
   border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  min-width: 120px;
+  background: var(--bg-card);
+  transition: background 0.2s;
 }
 
-.matrix-table thead th:last-child {
+.stat-box-col:last-child {
   border-right: none;
 }
 
-.matrix-table thead th:first-child {
-  text-align: left;
-  padding-left: 18px;
+/* Colored top border accents exactly like screenshot */
+.stat-box-col.col-team {
+  border-top: 4px solid #30496d;
 }
 
-.matrix-table tbody tr {
-  border-bottom: 1px solid var(--border);
-  transition: background 0.15s;
+.stat-box-col.col-total {
+  border-top: 4px solid #30496d;
 }
 
-.matrix-table tbody tr:hover {
+.stat-box-col.col-inprogress {
+  border-top: 4px solid #2563eb;
+}
+
+.stat-box-col.col-notstarted {
+  border-top: 4px solid #8B97A8;
+}
+
+.stat-box-col.col-ongoing {
+  border-top: 4px solid #f46262;
+}
+
+.stat-box-col.col-completed {
+  border-top: 4px solid #00C896;
+}
+
+/* Header section with big number and uppercase label */
+.stat-box-header {
+  padding: 18px 10px 14px 10px;
+  text-align: center;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.2s;
+}
+
+.stat-box-header:hover {
   background: var(--bg-hover);
 }
 
-.matrix-table tbody tr:last-child {
-  border-bottom: none;
+.stat-box-header.active {
+  background: rgba(48, 73, 109, 0.07);
 }
 
-.matrix-table td {
-  padding: 10px 14px;
-  border-right: 1px solid var(--border);
-  vertical-align: middle;
-}
-
-.matrix-table td:last-child {
-  border-right: none;
-}
-
-.matrix-table td:first-child {
-  text-align: left;
-  font-weight: 700;
+.stat-box-num {
+  font-size: 28px;
+  font-weight: 800;
   color: var(--text-primary);
-  padding-left: 18px;
+  line-height: 1.1;
+  font-family: 'Plus Jakarta Sans', sans-serif;
 }
 
-.matrix-chip {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 32px;
-  height: 24px;
-  padding: 0 8px;
-  border-radius: 12px;
-  font-weight: 700;
+.stat-box-label {
   font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  margin-top: 6px;
+}
+
+/* Rows section */
+.stat-box-rows {
+  padding: 0 12px 18px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+}
+
+/* Rounded rectangle pill item */
+.stat-pill-row {
+  height: 38px;
+  border-radius: 8px;
+  background: var(--bg-input);
+  display: flex;
+  align-items: center;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
+  border: 1.5px solid transparent;
   user-select: none;
 }
 
-.matrix-chip:hover {
-  transform: translateY(-1px) scale(1.08);
-  box-shadow: 0 3px 8px rgba(0,0,0,0.2);
+.stat-pill-row:hover {
+  background: var(--bg-hover);
+  border-color: var(--border-strong);
+  transform: translateY(-1px);
 }
 
-.matrix-chip.active {
-  outline: 2px solid #f46262;
-  box-shadow: 0 0 0 3px rgba(244, 98, 98, 0.35);
-  transform: scale(1.1);
+.stat-pill-row.active {
+  border-color: var(--brand-primary);
+  background: rgba(48, 73, 109, 0.1);
+  box-shadow: 0 0 0 2px rgba(48, 73, 109, 0.15);
 }
 
-.matrix-chip.chip-total {
-  background: rgba(48, 73, 109, 0.12);
+/* In Team Member column: left-aligned text */
+.stat-pill-name {
+  padding: 0 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  width: 100%;
+}
+
+/* In status/count columns: centered number, NO circle */
+.stat-pill-val {
+  width: 100%;
+  text-align: center;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.val-total {
   color: #30496d;
 }
 
-.matrix-chip.chip-inprogress {
-  background: rgba(48, 73, 109, 0.15);
-  color: #30496d;
+.val-inprogress {
+  color: #2563eb;
 }
 
-.matrix-chip.chip-notstarted {
-  background: rgba(139, 151, 168, 0.18);
-  color: #5A6280;
+.val-notstarted {
+  color: #64748b;
 }
 
-.matrix-chip.chip-ongoing {
-  background: rgba(244, 98, 98, 0.15);
+.val-ongoing {
   color: #f46262;
 }
 
-.matrix-chip.chip-completed {
-  background: rgba(0, 200, 150, 0.15);
+.val-completed {
   color: #00A878;
-}
-
-.matrix-total-row {
-  background: rgba(48, 73, 109, 0.05);
-  font-weight: 800;
-  border-top: 2px solid var(--border-strong);
 }
 
 /* ── Due Tomorrow & Upcoming Tasks ── */
