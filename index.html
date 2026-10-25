@@ -14,8 +14,8 @@
 
 <!-- ══════════ SIDEBAR ══════════ -->
 <aside class="sidebar" id="sidebar">
-  <div class="sidebar-logo" onclick="openLogoModal()" style="cursor:pointer" title="Click to customize Logo & Email Template">
-    <div class="logo-icon" id="sidebar-logo-icon">
+  <div class="sidebar-logo" onclick="openSettingsModal()" style="cursor:pointer;" title="Click to view/change Logo & Email Templates">
+    <div class="logo-icon" id="sidebar-logo-container">
       <svg width="26" height="26" viewBox="0 0 26 26" fill="none">
         <path d="M4 3C4 1.9 4.9 1 6 1H17L22 6V23C22 24.1 21.1 25 20 25H6C4.9 25 4 24.1 4 23V3Z" fill="white" opacity="0.9"/>
         <path d="M17 1L22 6H17V1Z" fill="white" opacity="0.6"/>
@@ -25,7 +25,7 @@
         <circle cx="19" cy="16" r="1.5" fill="white" opacity="0.6"/>
       </svg>
     </div>
-    <div class="logo-title">L&D Tracker <span style="font-size:11px;opacity:0.7">⚙️</span></div>
+    <div class="logo-title">L&D Tracker <span style="font-size:12px;opacity:0.8" title="Settings & Email Templates">⚙️</span></div>
     <div class="logo-subtitle">Learning &amp; Development</div>
   </div>
 
@@ -98,42 +98,16 @@
 
   <!-- ══ PAGE: DASHBOARD ══ -->
   <section class="page active" id="page-dashboard">
-    <div class="stats-strip" id="stats-strip"></div>
-
-    <!-- Click-on-Name Interactive Activities View -->
-    <div class="filtered-owner-activities-card" id="dashboard-owner-detail" style="display:none; margin-bottom:24px;">
-      <div class="section-header" style="margin-bottom:12px">
-        <div>
-          <div class="section-title" id="dashboard-owner-detail-title">📋 Activities Breakdown</div>
-          <div style="font-size:11px;color:var(--text-muted);margin-top:2px" id="dashboard-owner-detail-sub">Click any other name in the boxes above to filter</div>
-        </div>
-        <div class="section-actions">
-          <button class="btn btn-secondary btn-sm" onclick="closeDashboardOwnerDetail()">✕ Close View</button>
-        </div>
-      </div>
-      <div class="table-wrapper">
-        <table class="compact-table">
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Activity Name</th>
-              <th>Owner</th>
-              <th>Initiative</th>
-              <th>Schedule</th>
-              <th>Status</th>
-              <th>Type</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody id="dashboard-owner-detail-tbody"></tbody>
-        </table>
-      </div>
-    </div>
+    <div class="stats-matrix-card" id="stats-matrix-container"></div>
+    <div id="dashboard-selected-activities" style="display:none; margin-bottom: 24px;"></div>
 
     <div class="charts-grid">
-      <div class="chart-card">
-        <div class="chart-card-title">📈 Status Distribution</div>
-        <canvas id="chart-status"></canvas>
+      <div class="chart-card" id="due-tomorrow-card">
+        <div class="chart-card-title" style="display:flex;justify-content:space-between;align-items:center;">
+          <span>⏳ Due Tomorrow &amp; Upcoming</span>
+          <span class="badge badge-ongoing" id="due-tomorrow-badge">0 tasks</span>
+        </div>
+        <div id="due-tomorrow-list" class="due-tomorrow-container"></div>
       </div>
       <div class="chart-card">
         <div class="chart-card-title">👤 Activities by Owner</div>
@@ -252,9 +226,9 @@
   <!-- ══ PAGE: CALENDAR ══ -->
   <section class="page" id="page-calendar">
     <div class="section-header">
-      <div class="section-title">📅 Task & Meeting Calendar</div>
+      <div class="section-title">📅 Task &amp; Meeting Calendar</div>
       <div class="section-actions">
-        <button class="btn btn-primary btn-sm" onclick="openEventModal()">＋ Schedule Meeting / Event</button>
+        <button class="btn btn-primary btn-sm" onclick="openAddEventModal()">＋ Add Event</button>
         <button class="btn btn-secondary btn-sm" onclick="calPrev()">◀ Prev</button>
         <span class="cal-month-label" id="cal-month-label"></span>
         <button class="btn btn-secondary btn-sm" onclick="calNext()">Next ▶</button>
@@ -360,37 +334,36 @@
           </div>
         </div>
         <div class="form-group">
-          <label class="form-label">Status *</label>
+          <label class="form-label">Status * (Defaults to Not Started)</label>
           <select id="f-status" required>
-            <option value="">Select status</option>
-            <option>Not Started</option>
-            <option>On Going</option>
-            <option>In Progress</option>
-            <option>Completed</option>
+            <option value="Not Started" selected>Not Started</option>
+            <option value="In Progress">In Progress</option>
+            <option value="On Going">On Going</option>
+            <option value="Completed">Completed</option>
           </select>
         </div>
         <div class="form-group">
-          <label class="form-label">Start Date & Time</label>
+          <label class="form-label">Start Date &amp; Time</label>
           <div style="display:flex;gap:6px">
             <input type="date" id="f-start" style="flex:1" />
-            <input type="time" id="f-start-time" style="width:105px" title="Start Time" />
+            <input type="time" id="f-start-time" style="width:100px" />
           </div>
         </div>
         <div class="form-group">
-          <label class="form-label">End Date & Time</label>
+          <label class="form-label">End Date &amp; Time</label>
           <div style="display:flex;gap:6px">
             <input type="date" id="f-end" style="flex:1" />
-            <input type="time" id="f-end-time" style="width:105px" title="End Time / Due Time" />
+            <input type="time" id="f-end-time" style="width:100px" />
           </div>
         </div>
         <div class="form-group">
-          <label class="form-label">Reminder Alert</label>
-          <select id="f-reminder">
-            <option value="1day">1 day before (Default)</option>
-            <option value="10min">10 minutes before</option>
-            <option value="20min">20 minutes before</option>
-            <option value="30min">30 minutes before</option>
-            <option value="1hour">1 hour before</option>
+          <label class="form-label">Reminder Notification</label>
+          <select id="f-reminder-time">
+            <option value="1 day before" selected>1 day before</option>
+            <option value="1 hour before">1 hour before</option>
+            <option value="30 min before">30 min before</option>
+            <option value="20 min before">20 min before</option>
+            <option value="10 min before">10 min before</option>
             <option value="none">No reminder</option>
           </select>
         </div>
@@ -413,6 +386,12 @@
         <div class="form-group full">
           <label class="form-label">Notes</label>
           <textarea id="f-notes" placeholder="Any additional notes or context…"></textarea>
+        </div>
+        <div class="form-group full" id="f-manager-notify-group">
+          <label style="font-size:12px;font-weight:600;display:flex;align-items:center;gap:8px;cursor:pointer;background:rgba(48,73,109,0.06);padding:8px 12px;border-radius:8px;border:1px solid var(--border);">
+            <input type="checkbox" id="f-notify-manager" checked style="accent-color:var(--brand-primary);width:16px;height:16px;" />
+            <span>📧 Send task assignment email to associate (From Manager: Prasad Kulkarni - prasad.kulkarni1@onixnet.com)</span>
+          </label>
         </div>
         <!-- Sub-activities section -->
         <div class="form-group full" id="subactivities-section" style="display:none">
@@ -556,113 +535,197 @@
   </div>
 </div>
 
-<!-- ══════════ SCHEDULE MEETING / EVENT MODAL ══════════ -->
+<!-- ══════════ ADD EVENT MODAL ══════════ -->
 <div class="modal-overlay" id="event-modal-overlay" onclick="onEventOverlayClick(event)">
   <div class="modal" style="max-width:540px">
-    <div class="modal-title">📅 Schedule Meeting / Event</div>
+    <div class="modal-title">📅 Add Meeting / Event</div>
     <form id="event-form" onsubmit="saveEvent(event)">
       <div class="form-grid">
         <div class="form-group full">
-          <label class="form-label">Meeting / Event Title *</label>
-          <input type="text" id="fe-title" required placeholder="e.g. 1:1 Connect Session / Team Sync" />
+          <label class="form-label">Event / Meeting Title *</label>
+          <input type="text" id="ev-name" required placeholder="e.g. L&D Weekly Sync / Training Session" />
         </div>
         <div class="form-group full">
           <label class="form-label">Attendees / Owners *</label>
-          <div class="owner-checkboxes" id="fe-owner-checkboxes">
-            <label class="owner-cb"><input type="checkbox" name="fe-owner" value="Tejashri" /> Tejashri</label>
-            <label class="owner-cb"><input type="checkbox" name="fe-owner" value="Tanaya" /> Tanaya</label>
-            <label class="owner-cb"><input type="checkbox" name="fe-owner" value="Nikhil" /> Nikhil</label>
-            <label class="owner-cb"><input type="checkbox" name="fe-owner" value="Deepraj" /> Deepraj</label>
+          <div class="owner-checkboxes" id="ev-owner-checkboxes">
+            <label class="owner-cb"><input type="checkbox" name="ev-owner" value="Tejashri" /> Tejashri</label>
+            <label class="owner-cb"><input type="checkbox" name="ev-owner" value="Tanaya" /> Tanaya</label>
+            <label class="owner-cb"><input type="checkbox" name="ev-owner" value="Nikhil" /> Nikhil</label>
+            <label class="owner-cb"><input type="checkbox" name="ev-owner" value="Deepraj" /> Deepraj</label>
           </div>
         </div>
         <div class="form-group">
-          <label class="form-label">Meeting Date *</label>
-          <input type="date" id="fe-date" required />
+          <label class="form-label">Event Date *</label>
+          <input type="date" id="ev-date" required />
         </div>
         <div class="form-group">
-          <label class="form-label">Reminder Before *</label>
-          <select id="fe-reminder">
-            <option value="10">10 minutes before</option>
-            <option value="20" selected>20 minutes before</option>
-            <option value="30">30 minutes before</option>
-            <option value="60">1 hour before</option>
-            <option value="1440">1 day before</option>
+          <label class="form-label">Start &amp; End Time *</label>
+          <div style="display:flex;gap:6px">
+            <input type="time" id="ev-start-time" required style="flex:1" value="10:00" />
+            <input type="time" id="ev-end-time" required style="flex:1" value="11:00" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Reminder Notification</label>
+          <select id="ev-reminder-time">
+            <option value="10 min before">10 min before</option>
+            <option value="20 min before" selected>20 min before</option>
+            <option value="30 min before">30 min before</option>
+            <option value="1 hour before">1 hour before</option>
+            <option value="1 day before">1 day before</option>
           </select>
         </div>
         <div class="form-group">
-          <label class="form-label">Start Time *</label>
-          <input type="time" id="fe-start-time" required value="10:00" />
-        </div>
-        <div class="form-group">
-          <label class="form-label">End Time *</label>
-          <input type="time" id="fe-end-time" required value="10:45" />
+          <label class="form-label">Initiative / Project</label>
+          <select id="ev-initiative">
+            <option value="Other">Other</option>
+          </select>
         </div>
         <div class="form-group full">
           <label class="form-label">Meeting Link / Location</label>
-          <input type="text" id="fe-link" placeholder="e.g. https://meet.google.com/xxx-xxxx-xxx or Room A" />
+          <input type="text" id="ev-link" placeholder="e.g. https://meet.google.com/... or Room A" />
         </div>
         <div class="form-group full">
-          <label class="form-label">Notes & Agenda</label>
-          <textarea id="fe-notes" placeholder="Agenda points, topics to discuss..."></textarea>
+          <label class="form-label">Agenda / Notes</label>
+          <textarea id="ev-notes" placeholder="Meeting discussion points or agenda…"></textarea>
         </div>
       </div>
-      <div class="modal-footer" style="flex-wrap:wrap;gap:8px">
+      <div class="modal-footer">
         <button type="button" class="btn btn-secondary" onclick="closeEventModal()">Cancel</button>
-        <button type="submit" class="btn btn-secondary" id="event-save-btn">Save to Tracker</button>
-        <button type="button" class="btn btn-primary" onclick="saveEventAndOpenGCal()" style="background:#0F9D58">
-          📅 Save & Open in Google Calendar
-        </button>
+        <button type="submit" class="btn btn-primary">📅 Schedule Event</button>
       </div>
     </form>
   </div>
 </div>
 
-<!-- ══════════ LOGO & EMAIL TEMPLATE SETTINGS MODAL ══════════ -->
-<div class="modal-overlay" id="logo-modal-overlay" onclick="onLogoOverlayClick(event)">
+<!-- ══════════ BRANDING & EMAIL SETTINGS MODAL ══════════ -->
+<div class="modal-overlay" id="settings-modal-overlay" onclick="onSettingsOverlayClick(event)">
   <div class="modal" style="max-width:620px">
-    <div class="modal-title">⚙️ App Logo & Email Template Settings</div>
-    <p style="color:var(--text-secondary);font-size:12px;margin-bottom:18px">
-      Customize the tracker branding and edit the 1-day reminder email format sent to task owners.
+    <div class="modal-title">⚙️ Tracker Branding &amp; Email Settings</div>
+    
+    <!-- Logo customization section -->
+    <div style="margin-bottom:20px;padding:14px;background:var(--bg-input);border-radius:10px;border:1px solid var(--border)">
+      <label class="form-label">Logo Customization</label>
+      <div style="display:flex;align-items:center;gap:14px;margin-top:8px">
+        <div id="settings-logo-preview" style="width:52px;height:52px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg, #30496d, #f46262);overflow:hidden;box-shadow:0 3px 12px rgba(48,73,109,0.3)">
+          <svg width="30" height="30" viewBox="0 0 26 26" fill="none">
+            <path d="M4 3C4 1.9 4.9 1 6 1H17L22 6V23C22 24.1 21.1 25 20 25H6C4.9 25 4 24.1 4 23V3Z" fill="white" opacity="0.9"/>
+            <path d="M17 1L22 6H17V1Z" fill="white" opacity="0.6"/>
+            <path d="M8 11H18M8 14H16M8 17H14" stroke="#30496d" stroke-width="1.5" stroke-linecap="round"/>
+            <circle cx="19" cy="19" r="6" fill="#f46262"/>
+            <path d="M17 19H21M19 17V21" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div style="flex:1">
+          <div style="font-size:12px;font-weight:600;color:var(--text-primary)">Upload Custom Logo / Icon</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-bottom:6px">Select an image from your computer to replace the app logo</div>
+          <input type="file" id="logo-file-input" accept="image/*" onchange="handleLogoUpload(event)" style="font-size:11px" />
+          <button type="button" class="btn btn-secondary btn-sm" onclick="resetDefaultLogo()" style="margin-top:4px">Reset to Default Logo</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Email Template for 1-day reminder -->
+    <div class="form-group" style="margin-bottom:16px">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <label class="form-label">1-Day Due Reminder Email Template</label>
+        <span style="font-size:10px;color:var(--text-muted)">Tags: [Activity Name], [Owner Name], [End Date], [Initiative], [Status]</span>
+      </div>
+      <label style="font-size:11px;font-weight:600;color:var(--text-secondary);margin-top:4px">Subject:</label>
+      <input type="text" id="tpl-reminder-subject" value="Gentle Reminder: [Activity Name] is due tomorrow" />
+      <label style="font-size:11px;font-weight:600;color:var(--text-secondary);margin-top:6px">Body:</label>
+      <textarea id="tpl-reminder-body" style="min-height:130px;font-family:monospace;font-size:11.5px;line-height:1.5;">Hi [Owner Name],
+
+This is a quick reminder that the following task is scheduled to be completed by [End Date]:
+
+Activity Name: [Activity Name]
+Initiative: [Initiative]
+Status: [Status]
+End Date: [End Date]
+
+Please ensure the status is updated in the L&D Tracker once completed. Let me know if you need any support or if the timeline needs adjusting.
+
+Best regards,
+L&amp;D Team</textarea>
+    </div>
+
+    <!-- Manager Assignment Template -->
+    <div class="form-group" style="margin-bottom:16px">
+      <label class="form-label">New Task Assigned Notification Template (From Manager: Prasad Kulkarni)</label>
+      <label style="font-size:11px;font-weight:600;color:var(--text-secondary);margin-top:4px">Subject:</label>
+      <input type="text" id="tpl-assign-subject" value="New Task Assigned: [Activity Name]" />
+      <label style="font-size:11px;font-weight:600;color:var(--text-secondary);margin-top:6px">Body:</label>
+      <textarea id="tpl-assign-body" style="min-height:130px;font-family:monospace;font-size:11.5px;line-height:1.5;">Hi [Owner Name],
+
+A new task has been assigned to you by Prasad Kulkarni (prasad.kulkarni1@onixnet.com):
+
+📌 Task Name: [Activity Name]
+🎯 Initiative: [Initiative]
+📅 Due Date: [End Date]
+📊 Status: Not Started
+📝 Details: [Notes]
+
+Please review the task in the L&amp;D Tracker: [Tracker Link]
+
+Best regards,
+Prasad Kulkarni
+L&amp;D Management</textarea>
+    </div>
+
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" onclick="closeSettingsModal()">Cancel</button>
+      <button type="button" class="btn btn-primary" onclick="saveSettings()">💾 Save Settings</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ TASK ASSIGN NOTIFICATION POPUP ══════════ -->
+<div class="modal-overlay" id="task-assign-modal-overlay" onclick="onAssignOverlayClick(event)">
+  <div class="modal" style="max-width:540px">
+    <div class="modal-title">📧 Task Assigned — Email Notification</div>
+    <p style="color:var(--text-secondary);font-size:12px;margin-bottom:12px">
+      Task created with status <strong>Not Started</strong>. An email notification has been prepared from Manager <strong>Prasad Kulkarni (prasad.kulkarni1@onixnet.com)</strong>:
     </p>
-
-    <div style="background:var(--bg-input);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:18px">
-      <div style="font-weight:700;font-size:13px;color:var(--text-primary);margin-bottom:8px">🖼️ Tracker Logo</div>
-      <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
-        <div id="logo-preview-box" style="width:50px;height:50px;border-radius:12px;background:linear-gradient(135deg,var(--brand-primary),var(--brand-secondary));display:flex;align-items:center;justify-content:center;overflow:hidden">
-          <span id="logo-preview-inner" style="font-size:24px">🎓</span>
-        </div>
-        <div style="flex:1;min-width:200px">
-          <label class="form-label" style="margin-bottom:4px">Upload Custom Image / Icon</label>
-          <input type="file" id="logo-file-input" accept="image/*" onchange="handleLogoUpload(event)" style="font-size:11px;padding:4px" />
-          <div style="margin-top:6px;display:flex;gap:6px">
-            <button type="button" class="btn btn-secondary btn-sm" onclick="setPresetLogo('book')">📖 Book + AI</button>
-            <button type="button" class="btn btn-secondary btn-sm" onclick="setPresetLogo('grad')">🎓 Graduation</button>
-            <button type="button" class="btn btn-secondary btn-sm" onclick="setPresetLogo('brain')">🧠 AI Brain</button>
-            <button type="button" class="btn btn-secondary btn-sm" onclick="resetDefaultLogo()">Default</button>
-          </div>
-        </div>
-      </div>
+    <div class="form-group" style="margin-bottom:12px">
+      <label class="form-label">Recipients</label>
+      <div id="assign-email-recipients" style="font-size:12px;font-weight:600;color:var(--text-primary);padding:6px 10px;background:var(--bg-input);border-radius:6px;border:1px solid var(--border);"></div>
     </div>
-
-    <div style="background:var(--bg-input);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:16px">
-      <div style="font-weight:700;font-size:13px;color:var(--text-primary);margin-bottom:8px">📧 1-Day Reminder Email Template</div>
-      <div class="form-group" style="margin-bottom:10px">
-        <label class="form-label">Subject Format</label>
-        <input type="text" id="tpl-subject" value="Gentle Reminder: [Activity Name] is due tomorrow" style="width:100%" />
-      </div>
-      <div class="form-group">
-        <label class="form-label">Body Format</label>
-        <textarea id="tpl-body" style="width:100%;min-height:160px;font-family:monospace;font-size:11.5px;line-height:1.5"></textarea>
-      </div>
-      <div style="font-size:10px;color:var(--text-muted);margin-top:6px">
-        Available tags: <code style="background:var(--bg-hover);padding:1px 4px;border-radius:3px">[Activity Name]</code>, <code style="background:var(--bg-hover);padding:1px 4px;border-radius:3px">[Owner Name]</code>, <code style="background:var(--bg-hover);padding:1px 4px;border-radius:3px">[End Date]</code>, <code style="background:var(--bg-hover);padding:1px 4px;border-radius:3px">[Initiative]</code>, <code style="background:var(--bg-hover);padding:1px 4px;border-radius:3px">[Status]</code>
-      </div>
+    <div class="form-group" style="margin-bottom:14px">
+      <label class="form-label">Email Draft Preview</label>
+      <textarea id="assign-email-preview" readonly style="min-height:140px;font-family:monospace;font-size:11px;background:var(--bg-input);"></textarea>
     </div>
-
     <div class="modal-footer" style="flex-wrap:wrap;gap:8px">
-      <button type="button" class="btn btn-secondary" onclick="resetEmailTemplateToDefault()">Reset to Default</button>
-      <button type="button" class="btn btn-secondary" onclick="closeLogoModal()">Cancel</button>
-      <button type="button" class="btn btn-primary" onclick="saveTemplateSettings()">💾 Save Settings</button>
+      <button type="button" class="btn btn-secondary" onclick="closeAssignModal()">Close</button>
+      <button type="button" class="btn btn-secondary" onclick="copyAssignEmail()">📋 Copy Email</button>
+      <button type="button" class="btn btn-secondary" onclick="sendAssignMailto()">💻 Default Mail App</button>
+      <button type="button" class="btn btn-primary" onclick="sendAssignGmail()" style="background:#EA4335">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="white" style="margin-right:2px"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
+        Open in Gmail
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ 1-DAY REMINDER MODAL POPUP ══════════ -->
+<div class="modal-overlay" id="reminder-modal-overlay" onclick="onReminderOverlayClick(event)">
+  <div class="modal" style="max-width:540px">
+    <div class="modal-title">⏰ Send 1-Day Due Reminder</div>
+    <div class="form-group" style="margin-bottom:12px">
+      <label class="form-label">Recipient(s)</label>
+      <div id="reminder-email-recipient" style="font-size:12px;font-weight:600;color:var(--text-primary);padding:6px 10px;background:var(--bg-input);border-radius:6px;border:1px solid var(--border);"></div>
+    </div>
+    <div class="form-group" style="margin-bottom:14px">
+      <label class="form-label">Email Preview</label>
+      <textarea id="reminder-email-preview" readonly style="min-height:140px;font-family:monospace;font-size:11px;background:var(--bg-input);"></textarea>
+    </div>
+    <div class="modal-footer" style="flex-wrap:wrap;gap:8px">
+      <button type="button" class="btn btn-secondary" onclick="closeReminderModal()">Close</button>
+      <button type="button" class="btn btn-secondary" onclick="copyReminderEmail()">📋 Copy</button>
+      <button type="button" class="btn btn-secondary" onclick="sendReminderMailto()">💻 Mail App</button>
+      <button type="button" class="btn btn-primary" onclick="sendReminderGmail()" style="background:#EA4335">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="white" style="margin-right:2px"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
+        Open in Gmail
+      </button>
     </div>
   </div>
 </div>
@@ -670,6 +733,6 @@
 <!-- Toast Container -->
 <div class="toast-container" id="toast-container"></div>
 
-<script src="app.js?v=3.1"></script>
+<script src="app.js?v=3.0"></script>
 </body>
 </html>

@@ -62,18 +62,52 @@ const TEAM_EMAILS = [
   'deepraj.bhosale@onixnet.com',
 ];
 
-const OWNERS = ['Tejashri', 'Tanaya', 'Nikhil', 'Deepraj'];
-
-const OWNER_EMAIL_MAP = {
+const OWNER_EMAILS = {
   'Tejashri': 'tejashri.sapkal@onixnet.com',
   'Tanaya':   'tanaya.sankapal@onixnet.com',
   'Nikhil':   'nikhil.shelke@onixnet.com',
   'Deepraj':  'deepraj.bhosale@onixnet.com',
 };
 
-const DEFAULT_EMAIL_TEMPLATE = {
-  subject: 'Gentle Reminder: [Activity Name] is due tomorrow',
-  body: `Hi [Owner Name],
+const OWNERS = ['Tejashri', 'Tanaya', 'Nikhil', 'Deepraj'];
+
+const MANAGER_EMAIL = 'prasad.kulkarni1@onixnet.com';
+const MANAGER_NAME = 'Prasad Kulkarni';
+
+const DEFAULT_LOGO_SVG = `<svg width="26" height="26" viewBox="0 0 26 26" fill="none">
+  <path d="M4 3C4 1.9 4.9 1 6 1H17L22 6V23C22 24.1 21.1 25 20 25H6C4.9 25 4 24.1 4 23V3Z" fill="white" opacity="0.9"/>
+  <path d="M17 1L22 6H17V1Z" fill="white" opacity="0.6"/>
+  <path d="M8 11H18M8 14H16M8 17H14" stroke="#30496d" stroke-width="1.5" stroke-linecap="round"/>
+  <circle cx="19" cy="19" r="6" fill="#f46262"/>
+  <path d="M17 19H21M19 17V21" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+  <circle cx="19" cy="16" r="1.5" fill="white" opacity="0.6"/>
+</svg>`;
+
+const DEFAULT_SETTINGS_LOGO_SVG = `<svg width="30" height="30" viewBox="0 0 26 26" fill="none">
+  <path d="M4 3C4 1.9 4.9 1 6 1H17L22 6V23C22 24.1 21.1 25 20 25H6C4.9 25 4 24.1 4 23V3Z" fill="white" opacity="0.9"/>
+  <path d="M17 1L22 6H17V1Z" fill="white" opacity="0.6"/>
+  <path d="M8 11H18M8 14H16M8 17H14" stroke="#30496d" stroke-width="1.5" stroke-linecap="round"/>
+  <circle cx="19" cy="19" r="6" fill="#f46262"/>
+  <path d="M17 19H21M19 17V21" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+</svg>`;
+
+function getEmailsForOwner(ownerStr) {
+  if (!ownerStr) return TEAM_EMAILS;
+  const parts = ownerStr.split('/').map(p => p.trim());
+  const emails = [];
+  parts.forEach(p => {
+    for (const [name, email] of Object.entries(OWNER_EMAILS)) {
+      if (name.toLowerCase() === p.toLowerCase()) {
+        if (!emails.includes(email)) emails.push(email);
+      }
+    }
+  });
+  return emails.length ? emails : TEAM_EMAILS;
+}
+
+const DEFAULT_TEMPLATES = {
+  reminderSubject: 'Gentle Reminder: [Activity Name] is due tomorrow',
+  reminderBody: `Hi [Owner Name],
 
 This is a quick reminder that the following task is scheduled to be completed by [End Date]:
 
@@ -85,12 +119,26 @@ End Date: [End Date]
 Please ensure the status is updated in the L&D Tracker once completed. Let me know if you need any support or if the timeline needs adjusting.
 
 Best regards,
-L&D Team`
+L&D Team`,
+  assignSubject: 'New Task Assigned: [Activity Name]',
+  assignBody: `Hi [Owner Name],
+
+A new task has been assigned to you by Prasad Kulkarni (prasad.kulkarni1@onixnet.com):
+
+📌 Task Name: [Activity Name]
+🎯 Initiative: [Initiative]
+📅 Due Date: [End Date]
+📊 Status: Not Started
+📝 Details: [Notes]
+
+Please review the task in the L&D Tracker: [Tracker Link]
+
+Best regards,
+Prasad Kulkarni
+L&D Management`
 };
 
-let emailTemplate = { ...DEFAULT_EMAIL_TEMPLATE };
-let calendarEvents = [];
-let currentDashboardFilter = { owner: null, status: null };
+let emailTemplates = { ...DEFAULT_TEMPLATES };
 
 const GOOGLE_SHEET_URL = 'https://docs.google.com/spreadsheets/d/1B5cI9UpRKemHf7OnwanVR9Lz-JUIpjwgVLgUOVIk6qY/edit?gid=2050775428#gid=2050775428';
 
@@ -99,14 +147,17 @@ const GOOGLE_SHEET_URL = 'https://docs.google.com/spreadsheets/d/1B5cI9UpRKemHf7
 ────────────────────────────────────────── */
 
 let activities = [];
-let nextId = 21;
+let nextId = 22;
 let editingId = null;
 let sortCol = 'id';
 let sortDir = 1;
 let searchQuery = '';
-let chartStatus, chartOwner, chartType;
+let chartOwner, chartType;
 let calYear = 2026;
 let calMonth = new Date().getMonth(); // 0-indexed
+let activeMatrixFilter = { owner: null, status: null };
+let currentAssignDraft = null;
+let currentReminderDraft = null;
 
 /* ──────────────────────────────────────────
    3. INIT
@@ -115,16 +166,13 @@ let calMonth = new Date().getMonth(); // 0-indexed
 document.addEventListener('DOMContentLoaded', () => {
   loadData();
   loadInitiatives();
-  loadEmailTemplate();
-  loadCalendarEvents();
-  loadCustomLogo();
+  loadSettings();
   populateDropdowns();
   updateSidebarDate();
   renderAll();
   setInterval(updateSidebarDate, 60000);
   checkReminders();
-  setInterval(checkReminders, 3600000); // check task due dates every hour
-  setInterval(checkMeetingReminders, 60000); // check meeting alerts every minute
+  setInterval(checkReminders, 3600000); // check every hour
   requestNotificationPermission();
 });
 
@@ -148,41 +196,107 @@ function loadInitiatives() {
   }
 }
 
-function loadEmailTemplate() {
-  const stored = localStorage.getItem('ld_tracker_email_template');
-  if (stored) {
-    try { emailTemplate = JSON.parse(stored); } catch { emailTemplate = { ...DEFAULT_EMAIL_TEMPLATE }; }
-  } else {
-    emailTemplate = { ...DEFAULT_EMAIL_TEMPLATE };
-  }
-}
-
-function loadCalendarEvents() {
-  const stored = localStorage.getItem('ld_tracker_events_v2');
-  if (stored) {
-    try { calendarEvents = JSON.parse(stored); } catch { calendarEvents = []; }
-  } else {
-    calendarEvents = [];
-  }
-}
-
-function saveCalendarEvents() {
-  localStorage.setItem('ld_tracker_events_v2', JSON.stringify(calendarEvents));
-}
-
-function loadCustomLogo() {
-  const stored = localStorage.getItem('ld_tracker_custom_logo');
-  if (stored) {
-    applyLogo(stored);
-  }
-}
-
 function saveData() {
   localStorage.setItem('ld_tracker_activities_v3', JSON.stringify(activities));
 }
 
 function saveInitiatives() {
   localStorage.setItem('ld_tracker_initiatives_v3', JSON.stringify(INITIATIVES));
+}
+
+function loadSettings() {
+  const storedTemplates = localStorage.getItem('ld_tracker_templates');
+  if (storedTemplates) {
+    try {
+      emailTemplates = { ...DEFAULT_TEMPLATES, ...JSON.parse(storedTemplates) };
+    } catch {
+      emailTemplates = { ...DEFAULT_TEMPLATES };
+    }
+  }
+
+  const storedLogo = localStorage.getItem('ld_tracker_logo');
+  if (storedLogo) {
+    applyCustomLogo(storedLogo);
+  }
+}
+
+function applyCustomLogo(dataUrl) {
+  const sideLogo = document.getElementById('sidebar-logo-container');
+  const previewLogo = document.getElementById('settings-logo-preview');
+  if (sideLogo) {
+    sideLogo.innerHTML = `<img src="${dataUrl}" alt="Logo" style="width:100%;height:100%;object-fit:cover;border-radius:8px;" />`;
+  }
+  if (previewLogo) {
+    previewLogo.innerHTML = `<img src="${dataUrl}" alt="Logo" style="width:100%;height:100%;object-fit:cover;border-radius:12px;" />`;
+  }
+}
+
+function resetDefaultLogo() {
+  localStorage.removeItem('ld_tracker_logo');
+  const sideLogo = document.getElementById('sidebar-logo-container');
+  const previewLogo = document.getElementById('settings-logo-preview');
+  if (sideLogo) sideLogo.innerHTML = DEFAULT_LOGO_SVG;
+  if (previewLogo) previewLogo.innerHTML = DEFAULT_SETTINGS_LOGO_SVG;
+  const fileInput = document.getElementById('logo-file-input');
+  if (fileInput) fileInput.value = '';
+  showToast('🔄 Logo reset to default', 'info');
+}
+
+function handleLogoUpload(e) {
+  const file = e.target.files && e.target.files[0];
+  if (!file) return;
+  if (!file.type.startsWith('image/')) {
+    showToast('⚠️ Please upload an image file', 'error');
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = function(evt) {
+    const dataUrl = evt.target.result;
+    localStorage.setItem('ld_tracker_logo', dataUrl);
+    applyCustomLogo(dataUrl);
+    showToast('🖼️ Logo updated successfully!', 'success');
+  };
+  reader.readAsDataURL(file);
+}
+
+function openSettingsModal() {
+  const rSub = document.getElementById('tpl-reminder-subject');
+  const rBody = document.getElementById('tpl-reminder-body');
+  const aSub = document.getElementById('tpl-assign-subject');
+  const aBody = document.getElementById('tpl-assign-body');
+
+  if (rSub) rSub.value = emailTemplates.reminderSubject || DEFAULT_TEMPLATES.reminderSubject;
+  if (rBody) rBody.value = emailTemplates.reminderBody || DEFAULT_TEMPLATES.reminderBody;
+  if (aSub) aSub.value = emailTemplates.assignSubject || DEFAULT_TEMPLATES.assignSubject;
+  if (aBody) aBody.value = emailTemplates.assignBody || DEFAULT_TEMPLATES.assignBody;
+
+  document.getElementById('settings-modal-overlay').classList.add('open');
+}
+
+function closeSettingsModal() {
+  document.getElementById('settings-modal-overlay').classList.remove('open');
+}
+
+function onSettingsOverlayClick(e) {
+  if (e.target === document.getElementById('settings-modal-overlay')) closeSettingsModal();
+}
+
+function saveSettings() {
+  const rSub = document.getElementById('tpl-reminder-subject')?.value.trim();
+  const rBody = document.getElementById('tpl-reminder-body')?.value.trim();
+  const aSub = document.getElementById('tpl-assign-subject')?.value.trim();
+  const aBody = document.getElementById('tpl-assign-body')?.value.trim();
+
+  emailTemplates = {
+    reminderSubject: rSub || DEFAULT_TEMPLATES.reminderSubject,
+    reminderBody: rBody || DEFAULT_TEMPLATES.reminderBody,
+    assignSubject: aSub || DEFAULT_TEMPLATES.assignSubject,
+    assignBody: aBody || DEFAULT_TEMPLATES.assignBody,
+  };
+
+  localStorage.setItem('ld_tracker_templates', JSON.stringify(emailTemplates));
+  closeSettingsModal();
+  showToast('💾 Settings and templates saved!', 'success');
 }
 
 function populateDropdowns() {
@@ -278,7 +392,9 @@ function renderSideBadges() {
 ────────────────────────────────────────── */
 
 function renderDashboard() {
-  renderStatsStrip();
+  renderStatsMatrix();
+  renderDashboardSelectedActivities();
+  renderDueTomorrowList();
   renderCharts();
   renderRecentList();
 }
@@ -300,113 +416,281 @@ function getOwnerCounts(statusFilter = null) {
   return counts;
 }
 
-function renderStatsStrip() {
-  const total = activities.length;
-  const completed = activities.filter(a => a.status === 'Completed').length;
-  const inprogress = activities.filter(a => a.status === 'In Progress').length;
-  const ongoing = activities.filter(a => a.status === 'On Going').length;
-  const notStarted = activities.filter(a => a.status === 'Not Started').length;
+function renderStatsMatrix() {
+  const container = document.getElementById('stats-matrix-container');
+  if (!container) return;
 
-  const totalOwners = getOwnerCounts(null);
-  const completedOwners = getOwnerCounts('Completed');
+  const totalAssignedOwners = getOwnerCounts(null);
   const inprogressOwners = getOwnerCounts('In Progress');
-  const ongoingOwners = getOwnerCounts('On Going');
   const notStartedOwners = getOwnerCounts('Not Started');
+  const ongoingOwners = getOwnerCounts('On Going');
+  const completedOwners = getOwnerCounts('Completed');
 
-  // Order: Total Registered -> In Progress -> On Going -> Not Started -> Completed (Completed is AFTER Not Started)
-  const cells = [
-    { value: total,      label: 'Total Registered', accent: '#30496d', owners: totalOwners, status: null },
-    { value: inprogress, label: 'In Progress',      accent: '#30496d', owners: inprogressOwners, status: 'In Progress' },
-    { value: ongoing,    label: 'On Going',         accent: '#f46262', owners: ongoingOwners, status: 'On Going' },
-    { value: notStarted, label: 'Not Started',      accent: '#8B97A8', owners: notStartedOwners, status: 'Not Started' },
-    { value: completed,  label: 'Completed',        accent: '#00C896', owners: completedOwners, status: 'Completed' },
-  ];
+  const totalAll = activities.length;
+  const inprogressAll = activities.filter(a => a.status === 'In Progress').length;
+  const notStartedAll = activities.filter(a => a.status === 'Not Started').length;
+  const ongoingAll = activities.filter(a => a.status === 'On Going').length;
+  const completedAll = activities.filter(a => a.status === 'Completed').length;
 
-  document.getElementById('stats-strip').innerHTML = cells.map(c => `
-    <div class="stat-cell" style="--cell-accent:${c.accent}">
-      <div class="stat-value">${c.value}</div>
-      <div class="stat-label">${c.label}</div>
-      <div class="stat-owner-list">
-        ${OWNERS.map(o => `
-          <div class="stat-owner-row ${currentDashboardFilter.owner === o && currentDashboardFilter.status === (c.status || '') ? 'active-owner-filter' : ''}" 
-               onclick="selectDashboardOwnerFilter('${o}', '${c.status || ''}', this)" 
-               title="Click to view ${o}'s ${c.label} activities">
-            <span class="stat-owner-name">${o}</span>
-            <span class="stat-owner-num" style="background:${c.accent}">${c.owners[o] || 0}</span>
-          </div>
-        `).join('')}
-      </div>
-    </div>
-  `).join('');
+  let html = `
+    <table class="matrix-table">
+      <thead>
+        <tr>
+          <th>👤 Team Member</th>
+          <th>📋 Total Assigned</th>
+          <th>🔄 In Progress</th>
+          <th>⏳ Not Started</th>
+          <th>🔵 Ongoing activities</th>
+          <th>✅ Completed</th>
+        </tr>
+      </thead>
+      <tbody>
+  `;
+
+  OWNERS.forEach(owner => {
+    const isOwnerActive = activeMatrixFilter.owner === owner;
+    const isTotalActive = isOwnerActive && activeMatrixFilter.status === null;
+    const isInpActive = isOwnerActive && activeMatrixFilter.status === 'In Progress';
+    const isNotActive = isOwnerActive && activeMatrixFilter.status === 'Not Started';
+    const isOngActive = isOwnerActive && activeMatrixFilter.status === 'On Going';
+    const isCompActive = isOwnerActive && activeMatrixFilter.status === 'Completed';
+
+    html += `
+      <tr>
+        <td>
+          <span style="cursor:pointer;" onclick="filterDashboardByMatrix('${owner}', null)" title="View all activities for ${owner}">
+            <strong style="color:var(--brand-primary);">${owner}</strong>
+          </span>
+        </td>
+        <td>
+          <span class="matrix-chip chip-total ${isTotalActive ? 'active' : ''}" onclick="filterDashboardByMatrix('${owner}', null)" title="View Total Assigned for ${owner}">
+            ${totalAssignedOwners[owner] || 0}
+          </span>
+        </td>
+        <td>
+          <span class="matrix-chip chip-inprogress ${isInpActive ? 'active' : ''}" onclick="filterDashboardByMatrix('${owner}', 'In Progress')" title="View In Progress for ${owner}">
+            ${inprogressOwners[owner] || 0}
+          </span>
+        </td>
+        <td>
+          <span class="matrix-chip chip-notstarted ${isNotActive ? 'active' : ''}" onclick="filterDashboardByMatrix('${owner}', 'Not Started')" title="View Not Started for ${owner}">
+            ${notStartedOwners[owner] || 0}
+          </span>
+        </td>
+        <td>
+          <span class="matrix-chip chip-ongoing ${isOngActive ? 'active' : ''}" onclick="filterDashboardByMatrix('${owner}', 'On Going')" title="View Ongoing activities for ${owner}">
+            ${ongoingOwners[owner] || 0}
+          </span>
+        </td>
+        <td>
+          <span class="matrix-chip chip-completed ${isCompActive ? 'active' : ''}" onclick="filterDashboardByMatrix('${owner}', 'Completed')" title="View Completed for ${owner}">
+            ${completedOwners[owner] || 0}
+          </span>
+        </td>
+      </tr>
+    `;
+  });
+
+  const isTotalAllActive = activeMatrixFilter.owner === null && activeMatrixFilter.status === null && activeMatrixFilter.hasFilter;
+  const isInpAllActive = activeMatrixFilter.owner === null && activeMatrixFilter.status === 'In Progress';
+  const isNotAllActive = activeMatrixFilter.owner === null && activeMatrixFilter.status === 'Not Started';
+  const isOngAllActive = activeMatrixFilter.owner === null && activeMatrixFilter.status === 'On Going';
+  const isCompAllActive = activeMatrixFilter.owner === null && activeMatrixFilter.status === 'Completed';
+
+  html += `
+      <tr class="matrix-total-row">
+        <td><strong>📊 Team Total</strong></td>
+        <td><span class="matrix-chip chip-total ${isTotalAllActive ? 'active' : ''}" onclick="filterDashboardByMatrix(null, null)">${totalAll}</span></td>
+        <td><span class="matrix-chip chip-inprogress ${isInpAllActive ? 'active' : ''}" onclick="filterDashboardByMatrix(null, 'In Progress')">${inprogressAll}</span></td>
+        <td><span class="matrix-chip chip-notstarted ${isNotAllActive ? 'active' : ''}" onclick="filterDashboardByMatrix(null, 'Not Started')">${notStartedAll}</span></td>
+        <td><span class="matrix-chip chip-ongoing ${isOngAllActive ? 'active' : ''}" onclick="filterDashboardByMatrix(null, 'On Going')">${ongoingAll}</span></td>
+        <td><span class="matrix-chip chip-completed ${isCompAllActive ? 'active' : ''}" onclick="filterDashboardByMatrix(null, 'Completed')">${completedAll}</span></td>
+      </tr>
+    </tbody>
+  </table>
+  `;
+
+  container.innerHTML = html;
 }
 
-function selectDashboardOwnerFilter(owner, status, elem) {
-  // If clicking same owner and status, toggle off
-  if (currentDashboardFilter.owner === owner && currentDashboardFilter.status === status) {
-    closeDashboardOwnerDetail();
+function filterDashboardByMatrix(owner, status) {
+  if (activeMatrixFilter.owner === owner && activeMatrixFilter.status === status && activeMatrixFilter.hasFilter) {
+    activeMatrixFilter = { owner: null, status: null, hasFilter: false };
+  } else {
+    activeMatrixFilter = { owner: owner, status: status, hasFilter: true };
+  }
+  renderStatsMatrix();
+  renderDashboardSelectedActivities();
+}
+
+function clearMatrixFilter() {
+  activeMatrixFilter = { owner: null, status: null, hasFilter: false };
+  renderStatsMatrix();
+  renderDashboardSelectedActivities();
+}
+
+function renderDashboardSelectedActivities() {
+  const container = document.getElementById('dashboard-selected-activities');
+  if (!container) return;
+
+  if (!activeMatrixFilter.hasFilter) {
+    container.style.display = 'none';
+    container.innerHTML = '';
     return;
   }
 
-  currentDashboardFilter = { owner, status };
-
-  // Highlight active row in UI
-  document.querySelectorAll('.stat-owner-row').forEach(r => r.classList.remove('active-owner-filter'));
-  if (elem) elem.classList.add('active-owner-filter');
-
-  // Filter activities
-  const matching = activities.filter(a => {
-    const ownerMatches = (a.owner || '').toLowerCase().includes(owner.toLowerCase());
-    const statusMatches = status ? a.status === status : true;
-    return ownerMatches && statusMatches;
+  const { owner, status } = activeMatrixFilter;
+  const filtered = activities.filter(a => {
+    const matchesOwner = !owner || a.owner === owner || a.owner.split('/').map(p => p.trim().toLowerCase()).includes(owner.toLowerCase());
+    const matchesStatus = !status || a.status === status;
+    return matchesOwner && matchesStatus;
   });
 
-  const detailBox = document.getElementById('dashboard-owner-detail');
-  const title = document.getElementById('dashboard-owner-detail-title');
-  const sub = document.getElementById('dashboard-owner-detail-sub');
-  const tbody = document.getElementById('dashboard-owner-detail-tbody');
-  if (!detailBox || !title || !tbody) return;
+  const filterTitle = `${owner ? owner : 'All Associates'} • ${status ? (status === 'On Going' ? 'Ongoing activities' : status) : 'Total Assigned'}`;
+  
+  let html = `
+    <div class="month-activities-card" style="margin-top:0;border:2px solid var(--brand-primary);box-shadow:var(--shadow-md);">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+        <div class="section-title" style="font-size:14px">
+          📋 ${esc(filterTitle)} <span class="badge badge-inprogress" style="margin-left:6px">${filtered.length} activities</span>
+        </div>
+        <button class="btn btn-secondary btn-sm" onclick="clearMatrixFilter()">✕ Close Filter</button>
+      </div>
+      <div class="table-wrapper">
+        <table class="compact-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Activity Name</th>
+              <th>Owner</th>
+              <th>Initiative</th>
+              <th>Due Date &amp; Time</th>
+              <th>Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+  `;
 
-  const statusLabel = status ? status : 'Total Registered';
-  title.innerHTML = `👤 <strong>${esc(owner)}</strong> — <span style="color:var(--brand-primary)">${esc(statusLabel)} Activities</span> (${matching.length})`;
-  sub.textContent = matching.length
-    ? `Showing all ${matching.length} activity items assigned to ${owner} under "${statusLabel}". Click any other name above to switch.`
-    : `No activities found for ${owner} under "${statusLabel}".`;
-
-  if (!matching.length) {
-    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--text-muted)">No ${esc(statusLabel)} activities found for ${esc(owner)}.</td></tr>`;
+  if (!filtered.length) {
+    html += `<tr><td colspan="7" style="text-align:center;padding:16px;color:var(--text-muted)">No activities found for this selection.</td></tr>`;
   } else {
-    tbody.innerHTML = matching.map((a, i) => `
-      <tr>
-        <td style="font-weight:700;color:var(--text-muted)">${i + 1}</td>
-        <td style="font-weight:600">
-          ${esc(a.name)}
-          ${a.notes ? `<small style="display:block;color:var(--text-muted);font-weight:400;font-size:10px">📝 ${esc(a.notes.substring(0,35))}${a.notes.length>35?'…':''}</small>` : ''}
-        </td>
-        <td><span class="owner-chip">${esc(a.owner)}</span></td>
-        <td style="font-size:11px;color:var(--text-secondary)">${esc(a.initiative || '—')}</td>
-        <td style="font-size:11px;white-space:nowrap">${fmtDate(a.startDate)}${a.startTime ? ' ' + a.startTime : ''} → ${fmtDate(a.endDate)}${a.endTime ? ' ' + a.endTime : ''}</td>
-        <td><span class="badge ${badgeClass(a.status)}">${a.status}</span></td>
-        <td>${a.type ? `<span class="type-tag">${esc(a.type)}</span>` : '<span style="color:var(--text-muted)">—</span>'}</td>
-        <td>
-          <div class="action-btns">
-            <button class="btn btn-sm btn-secondary" onclick="editActivity(${a.id})" title="Edit Activity">✏️</button>
-            <a class="btn btn-sm btn-secondary" href="${buildGCalUrl(a)}" target="_blank" title="Add to Google Calendar">📅</a>
-            <button class="btn btn-sm btn-primary" onclick="sendCustomReminderEmail(${a.id})" title="Send Reminder Email">📧</button>
-          </div>
-        </td>
-      </tr>
-    `).join('');
+    filtered.forEach((a, idx) => {
+      const scheduleText = a.endDate ? `${fmtDate(a.endDate)}${a.endTime ? ' ' + a.endTime : ''}` : (a.startDate ? fmtDate(a.startDate) : '—');
+      html += `
+        <tr>
+          <td>${idx + 1}</td>
+          <td style="font-weight:600;max-width:240px">${esc(a.name)}</td>
+          <td><span class="owner-chip" style="font-size:10px;padding:2px 6px;">👤 ${esc(a.owner)}</span></td>
+          <td style="font-size:11px;color:var(--text-secondary);">${esc(a.initiative || '—')}</td>
+          <td style="font-size:11px;white-space:nowrap">${scheduleText}</td>
+          <td><span class="badge ${badgeClass(a.status)}">${a.status}</span></td>
+          <td>
+            <div style="display:flex;gap:4px">
+              <button class="btn btn-sm btn-secondary" onclick="editActivity(${a.id})" title="Edit">✏️</button>
+              <a class="btn btn-sm btn-secondary" href="${buildGCalUrl(a)}" target="_blank" title="Add to Google Calendar">📅</a>
+              <button class="btn btn-sm btn-primary" onclick="openReminderModal(${a.id})" title="Send 1-Day Reminder Email">📧</button>
+            </div>
+          </td>
+        </tr>
+      `;
+    });
   }
 
-  detailBox.style.display = 'block';
-  detailBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  html += `
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+
+  container.innerHTML = html;
+  container.style.display = 'block';
 }
 
-function closeDashboardOwnerDetail() {
-  currentDashboardFilter = { owner: null, status: null };
-  document.querySelectorAll('.stat-owner-row').forEach(r => r.classList.remove('active-owner-filter'));
-  const detailBox = document.getElementById('dashboard-owner-detail');
-  if (detailBox) detailBox.style.display = 'none';
+function renderDueTomorrowList() {
+  const container = document.getElementById('due-tomorrow-list');
+  const badge = document.getElementById('due-tomorrow-badge');
+  if (!container) return;
+
+  const today = new Date();
+  today.setHours(0,0,0,0);
+
+  const candidateTasks = activities.filter(a => a.status !== 'Completed' && a.endDate);
+
+  const dueItems = [];
+  candidateTasks.forEach(a => {
+    const end = new Date(a.endDate);
+    end.setHours(0,0,0,0);
+    const diffDays = Math.round((end - today) / (1000 * 60 * 60 * 24));
+    if (diffDays >= 0 && diffDays <= 2) {
+      dueItems.push({ activity: a, diffDays });
+    }
+  });
+
+  dueItems.sort((x, y) => x.diffDays - y.diffDays);
+
+  if (badge) {
+    badge.textContent = `${dueItems.length} due soon`;
+  }
+
+  if (!dueItems.length) {
+    const nextUpcoming = candidateTasks
+      .sort((a,b) => new Date(a.endDate) - new Date(b.endDate))
+      .slice(0, 4);
+
+    if (!nextUpcoming.length) {
+      container.innerHTML = `<div style="text-align:center;padding:24px 10px;color:var(--text-muted);font-size:12px;">✅ No pending tasks due in the next 48 hours or upcoming!</div>`;
+      return;
+    }
+
+    container.innerHTML = `
+      <div style="font-size:11px;color:var(--text-muted);margin-bottom:6px;">✨ No tasks due in 48 hours. Upcoming tasks:</div>
+      ${nextUpcoming.map(a => `
+        <div class="due-item">
+          <div class="due-item-info">
+            <div class="due-item-name">${esc(a.name)}</div>
+            <div class="due-item-meta">
+              <span>👤 ${esc(a.owner)}</span> • 
+              <span>📅 Due ${fmtDate(a.endDate)}${a.endTime ? ' ' + a.endTime : ''}</span> • 
+              <span class="badge ${badgeClass(a.status)}" style="font-size:9px;padding:1px 5px;">${a.status}</span>
+            </div>
+          </div>
+          <button class="due-btn" onclick="openReminderModal(${a.id})">📧 Send Reminder</button>
+        </div>
+      `).join('')}
+    `;
+    return;
+  }
+
+  container.innerHTML = dueItems.map(item => {
+    const a = item.activity;
+    let badgeHtml = '';
+    if (item.diffDays === 0) {
+      badgeHtml = `<span class="due-badge-tomorrow" style="background:rgba(244,98,98,0.2);color:#f46262;">🚨 Due Today</span>`;
+    } else if (item.diffDays === 1) {
+      badgeHtml = `<span class="due-badge-tomorrow">⏰ Due Tomorrow</span>`;
+    } else {
+      badgeHtml = `<span class="due-badge-soon">📅 Due in 2 Days</span>`;
+    }
+
+    return `
+      <div class="due-item">
+        <div class="due-item-info">
+          <div style="display:flex;align-items:center;gap:6px;">
+            <div class="due-item-name">${esc(a.name)}</div>
+            ${badgeHtml}
+          </div>
+          <div class="due-item-meta">
+            <span>👤 ${esc(a.owner)}</span> • 
+            <span>📅 ${fmtDate(a.endDate)}${a.endTime ? ' ' + a.endTime : ''}</span> • 
+            <span>${esc(a.initiative || 'General')}</span>
+          </div>
+        </div>
+        <button class="due-btn" onclick="openReminderModal(${a.id})">📧 Send 1-Day Reminder</button>
+      </div>
+    `;
+  }).join('');
 }
 
 function getChartColors(isDark) {
@@ -455,93 +739,76 @@ function renderCharts() {
 
   const defaultPlugin = { legend: { labels: { color: colors.text, font: fontCfg } } };
 
-  // Status Doughnut
-  if (chartStatus) chartStatus.destroy();
-  chartStatus = new Chart(document.getElementById('chart-status'), {
-    type: 'doughnut',
-    data: {
-      labels: Object.keys(statusCounts),
-      datasets: [{
-        data: Object.values(statusCounts),
-        backgroundColor: ['#00C896','#30496d','#f46262','#8B97A8'],
-        borderWidth: 2,
-        borderColor: dark ? '#13152A' : '#FFFFFF',
-        hoverOffset: 8,
-      }]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: true,
-      cutout: '65%',
-      plugins: { ...defaultPlugin, tooltip: { callbacks: {
-        label: ctx => ` ${ctx.label}: ${ctx.parsed} (${Math.round(ctx.parsed/activities.length*100)}%)`
-      }}},
-    }
-  });
-
   // Owner Stacked Bar with labels
-  if (chartOwner) chartOwner.destroy();
-  const ownerLabels = Object.keys(ownerStatusMap);
-  chartOwner = new Chart(document.getElementById('chart-owner'), {
-    type: 'bar',
-    data: {
-      labels: ownerLabels,
-      datasets: [
-        {
-          label: 'Completed',
-          data: ownerLabels.map(o => ownerStatusMap[o].completed),
-          backgroundColor: '#00C896',
-          borderRadius: 4, borderSkipped: false,
-        },
-        {
-          label: 'Pending',
-          data: ownerLabels.map(o => ownerStatusMap[o].pending),
-          backgroundColor: '#f46262',
-          borderRadius: 4, borderSkipped: false,
-        },
-      ]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: true,
-      plugins: {
-        ...defaultPlugin,
-        legend: { display: true, labels: { color: colors.text, font: fontCfg, usePointStyle: true, pointStyle: 'circle' } },
-        tooltip: { callbacks: {
-          afterBody: (tooltipItems) => {
-            const owner = tooltipItems[0].label;
-            return `Total: ${ownerStatusMap[owner].total}`;
-          }
-        }},
+  const ownerEl = document.getElementById('chart-owner');
+  if (ownerEl) {
+    if (chartOwner) chartOwner.destroy();
+    const ownerLabels = Object.keys(ownerStatusMap);
+    chartOwner = new Chart(ownerEl, {
+      type: 'bar',
+      data: {
+        labels: ownerLabels,
+        datasets: [
+          {
+            label: 'Completed',
+            data: ownerLabels.map(o => ownerStatusMap[o].completed),
+            backgroundColor: '#00C896',
+            borderRadius: 4, borderSkipped: false,
+          },
+          {
+            label: 'Pending',
+            data: ownerLabels.map(o => ownerStatusMap[o].pending),
+            backgroundColor: '#f46262',
+            borderRadius: 4, borderSkipped: false,
+          },
+        ]
       },
-      scales: {
-        x: { stacked: true, ticks: { color: colors.text, font: fontCfg }, grid: { color: colors.grid } },
-        y: { stacked: true, ticks: { color: colors.text, font: fontCfg, stepSize: 1 }, grid: { color: colors.grid }, beginAtZero: true },
+      options: {
+        responsive: true, maintainAspectRatio: true,
+        plugins: {
+          ...defaultPlugin,
+          legend: { display: true, labels: { color: colors.text, font: fontCfg, usePointStyle: true, pointStyle: 'circle' } },
+          tooltip: { callbacks: {
+            afterBody: (tooltipItems) => {
+              const owner = tooltipItems[0].label;
+              return `Total: ${ownerStatusMap[owner].total}`;
+            }
+          }},
+        },
+        scales: {
+          x: { stacked: true, ticks: { color: colors.text, font: fontCfg }, grid: { color: colors.grid } },
+          y: { stacked: true, ticks: { color: colors.text, font: fontCfg, stepSize: 1 }, grid: { color: colors.grid }, beginAtZero: true },
+        }
       }
-    }
-  });
+    });
+  }
 
   // Type Bar
-  if (chartType) chartType.destroy();
-  chartType = new Chart(document.getElementById('chart-type'), {
-    type: 'bar',
-    data: {
-      labels: Object.keys(typeMap),
-      datasets: [{
-        label: 'Count',
-        data: Object.values(typeMap),
-        backgroundColor: 'rgba(48,73,109,0.6)',
-        borderRadius: 6, borderSkipped: false,
-      }]
-    },
-    options: {
-      indexAxis: 'y',
-      responsive: true, maintainAspectRatio: true,
-      plugins: { ...defaultPlugin, legend: { display: false } },
-      scales: {
-        x: { ticks: { color: colors.text, font: fontCfg, stepSize: 1 }, grid: { color: colors.grid }, beginAtZero: true },
-        y: { ticks: { color: colors.text, font: fontCfg }, grid: { color: colors.grid } },
+  const typeEl = document.getElementById('chart-type');
+  if (typeEl) {
+    if (chartType) chartType.destroy();
+    chartType = new Chart(typeEl, {
+      type: 'bar',
+      data: {
+        labels: Object.keys(typeMap),
+        datasets: [{
+          label: 'Count',
+          data: Object.values(typeMap),
+          backgroundColor: 'rgba(48,73,109,0.6)',
+          borderRadius: 6, borderSkipped: false,
+        }]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true, maintainAspectRatio: true,
+        plugins: { ...defaultPlugin, legend: { display: false } },
+        scales: {
+          x: { ticks: { color: colors.text, font: fontCfg, stepSize: 1 }, grid: { color: colors.grid }, beginAtZero: true },
+          y: { ticks: { color: colors.text, font: fontCfg }, grid: { color: colors.grid } },
+        }
       }
-    }
-  });
+    });
+  }
 }
 
 function renderRecentList() {
@@ -998,14 +1265,14 @@ function renderGantt() {
         return `
         <div class="gantt-row">
           <div class="gantt-label">
-            <div style="font-weight:600;font-size:11px">${esc(a.name.substring(0,30))}${a.name.length>30?'…':''}</div>
-            <div style="font-size:9px;color:var(--text-muted);margin-top:1px">${esc(a.owner)}</div>
+            <div class="gantt-task-title" title="${esc(a.name)}">${esc(a.name)}</div>
+            <div class="gantt-task-associate">👤 ${esc(a.owner)}</div>
           </div>
           <div class="gantt-track" style="position:relative">
             <div class="gantt-bar ${barClass}"
               style="left:${leftPct.toFixed(1)}%;width:${widthPct.toFixed(1)}%;top:50%;transform:translateY(-50%);"
-              title="${esc(a.name)} | ${fmtDate(a.startDate)} → ${fmtDate(a.endDate)} | ${a.status}">
-              ${widthPct > 8 ? esc(a.name.substring(0,18)) : ''}
+              title="${esc(a.name)} • 👤 ${esc(a.owner)} | ${fmtDate(a.startDate)} → ${fmtDate(a.endDate)} | ${a.status}">
+              <div class="gantt-bar-text">${esc(a.name)} • 👤 ${esc(a.owner)}</div>
             </div>
           </div>
         </div>`;
@@ -1078,6 +1345,8 @@ function openModal(id = null) {
   const subList = document.getElementById('subactivities-list');
   subList.innerHTML = '';
 
+  const managerGroup = document.getElementById('f-manager-notify-group');
+
   if (id) {
     const a = activities.find(x => x.id === id);
     if (!a) return;
@@ -1086,18 +1355,26 @@ function openModal(id = null) {
     document.getElementById('f-name').value = a.name;
 
     // Set owner checkboxes
-    const ownerParts = a.owner.split('/');
+    const ownerParts = (a.owner || '').split('/');
     ownerParts.forEach(o => {
       const cb = document.querySelector(`#f-owner-checkboxes input[value="${o.trim()}"]`);
       if (cb) cb.checked = true;
     });
 
-    document.getElementById('f-status').value = a.status;
-    document.getElementById('f-start').value = a.startDate;
-    document.getElementById('f-end').value = a.endDate;
-    document.getElementById('f-type').value = a.type;
-    document.getElementById('f-initiative').value = a.initiative;
-    document.getElementById('f-notes').value = a.notes;
+    document.getElementById('f-status').value = a.status || 'Not Started';
+    document.getElementById('f-start').value = a.startDate || '';
+    const startTimeEl = document.getElementById('f-start-time');
+    if (startTimeEl) startTimeEl.value = a.startTime || '';
+    document.getElementById('f-end').value = a.endDate || '';
+    const endTimeEl = document.getElementById('f-end-time');
+    if (endTimeEl) endTimeEl.value = a.endTime || '';
+    const reminderTimeEl = document.getElementById('f-reminder-time');
+    if (reminderTimeEl) reminderTimeEl.value = a.reminderTime || '1 day before';
+    document.getElementById('f-type').value = a.type || '';
+    document.getElementById('f-initiative').value = a.initiative || '';
+    document.getElementById('f-notes').value = a.notes || '';
+
+    if (managerGroup) managerGroup.style.display = 'none';
 
     // Sub-activities
     subSection.style.display = 'block';
@@ -1107,7 +1384,22 @@ function openModal(id = null) {
   } else {
     document.getElementById('modal-title').textContent = '➕ Add Activity';
     document.getElementById('modal-save-btn').textContent = 'Save Activity';
+    // When manager or user assigns new task, status defaults to 'Not Started'
+    document.getElementById('f-status').value = 'Not Started';
     document.getElementById('f-start').value = new Date().toISOString().slice(0,10);
+    const startTimeEl = document.getElementById('f-start-time');
+    if (startTimeEl) startTimeEl.value = '10:00';
+    document.getElementById('f-end').value = '';
+    const endTimeEl = document.getElementById('f-end-time');
+    if (endTimeEl) endTimeEl.value = '18:00';
+    const reminderTimeEl = document.getElementById('f-reminder-time');
+    if (reminderTimeEl) reminderTimeEl.value = '1 day before';
+
+    if (managerGroup) {
+      managerGroup.style.display = 'block';
+      const notifyCb = document.getElementById('f-notify-manager');
+      if (notifyCb) notifyCb.checked = true;
+    }
     subSection.style.display = 'block';
   }
 
@@ -1161,30 +1453,44 @@ function saveActivity(e) {
     if (name) subActivities.push({ name, status });
   });
 
+  const shouldNotifyManager = !editingId && document.getElementById('f-notify-manager')?.checked;
+
   const data = {
-    name:       document.getElementById('f-name').value.trim(),
-    owner:      selectedOwners.join('/'),
-    status:     document.getElementById('f-status').value,
-    startDate:  document.getElementById('f-start').value,
-    endDate:    document.getElementById('f-end').value,
-    type:       document.getElementById('f-type').value,
-    initiative: document.getElementById('f-initiative').value,
-    notes:      document.getElementById('f-notes').value.trim(),
+    name:         document.getElementById('f-name').value.trim(),
+    owner:        selectedOwners.join('/'),
+    status:       document.getElementById('f-status').value || 'Not Started',
+    startDate:    document.getElementById('f-start').value,
+    startTime:    document.getElementById('f-start-time')?.value || '',
+    endDate:      document.getElementById('f-end').value,
+    endTime:      document.getElementById('f-end-time')?.value || '',
+    reminderTime: document.getElementById('f-reminder-time')?.value || '1 day before',
+    type:         document.getElementById('f-type').value,
+    initiative:   document.getElementById('f-initiative').value,
+    notes:        document.getElementById('f-notes').value.trim(),
     subActivities: subActivities,
   };
 
+  let savedActivity;
   if (editingId) {
     const idx = activities.findIndex(a => a.id === editingId);
-    activities[idx] = { id: editingId, ...data };
+    savedActivity = { id: editingId, ...data };
+    activities[idx] = savedActivity;
     showToast('✅ Activity updated successfully!', 'success');
   } else {
-    activities.push({ id: nextId++, ...data });
+    savedActivity = { id: nextId++, ...data };
+    activities.push(savedActivity);
     showToast('🎉 Activity added successfully!', 'success');
   }
 
   saveData();
   closeModal();
   renderAll();
+
+  if (shouldNotifyManager) {
+    setTimeout(() => {
+      triggerManagerAssignmentNotification(savedActivity);
+    }, 300);
+  }
 }
 
 function editActivity(id) {
@@ -1399,34 +1705,316 @@ function showBrowserNotification(title, body) {
 
 function buildGCalUrl(activity) {
   const title = encodeURIComponent(activity.name);
-  const start = activity.endDate || activity.startDate || new Date().toISOString().slice(0,10);
-  const dateClean = start.replace(/-/g, '');
-  const details = encodeURIComponent(`Owner: ${activity.owner}\nInitiative: ${activity.initiative || 'N/A'}\nStatus: ${activity.status}\n\nNotes: ${activity.notes || 'N/A'}`);
-  return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${dateClean}/${dateClean}&details=${details}&sf=true`;
+  const startDateStr = activity.startDate || activity.endDate || new Date().toISOString().slice(0, 10);
+  const endDateStr = activity.endDate || activity.startDate || startDateStr;
+
+  let datesParam = '';
+  if (activity.startTime) {
+    const sClean = startDateStr.replace(/-/g, '');
+    const sTime = activity.startTime.replace(/:/g, '') + '00';
+    let eClean = endDateStr.replace(/-/g, '');
+    let eTime = (activity.endTime ? activity.endTime.replace(/:/g, '') : activity.startTime.replace(/:/g, '')) + '00';
+    datesParam = `${sClean}T${sTime}/${eClean}T${eTime}`;
+  } else {
+    const sClean = startDateStr.replace(/-/g, '');
+    const eClean = endDateStr.replace(/-/g, '');
+    datesParam = `${sClean}/${eClean}`;
+  }
+
+  const details = encodeURIComponent(
+    `Owner: ${activity.owner}\n` +
+    `Initiative: ${activity.initiative || 'N/A'}\n` +
+    `Status: ${activity.status}\n` +
+    (activity.reminderTime ? `Reminder: ${activity.reminderTime}\n` : '') +
+    (activity.notes ? `\nNotes:\n${activity.notes}` : '')
+  );
+
+  return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${datesParam}&details=${details}&sf=true`;
 }
 
-function sendReminderEmail(activityId) {
+/* ──────────────────────────────────────────
+   15.1 CALENDAR EVENT SCHEDULING MODAL
+────────────────────────────────────────── */
+
+function openAddEventModal(dateStr = null) {
+  const form = document.getElementById('event-form');
+  if (form) form.reset();
+
+  const targetDate = dateStr || new Date().toISOString().slice(0, 10);
+  const evDateInput = document.getElementById('ev-date');
+  if (evDateInput) evDateInput.value = targetDate;
+
+  // Uncheck owners
+  document.querySelectorAll('#ev-owner-checkboxes input').forEach(cb => cb.checked = false);
+
+  // Populate initiatives in event form
+  const evInit = document.getElementById('ev-initiative');
+  if (evInit) {
+    evInit.innerHTML = '<option value="Other">Other</option>' + INITIATIVES.map(i => `<option value="${esc(i.name)}">${esc(i.name)}</option>`).join('');
+  }
+
+  document.getElementById('event-modal-overlay').classList.add('open');
+}
+
+function closeEventModal() {
+  document.getElementById('event-modal-overlay').classList.remove('open');
+}
+
+function onEventOverlayClick(e) {
+  if (e.target === document.getElementById('event-modal-overlay')) closeEventModal();
+}
+
+function saveEvent(e) {
+  e.preventDefault();
+
+  const name = document.getElementById('ev-name').value.trim();
+  const selectedOwners = [];
+  document.querySelectorAll('#ev-owner-checkboxes input:checked').forEach(cb => {
+    selectedOwners.push(cb.value);
+  });
+  if (!selectedOwners.length) {
+    showToast('⚠️ Please select at least one attendee/owner', 'error');
+    return;
+  }
+
+  const date = document.getElementById('ev-date').value;
+  const startTime = document.getElementById('ev-start-time').value;
+  const endTime = document.getElementById('ev-end-time').value;
+  const reminderTime = document.getElementById('ev-reminder-time').value;
+  const initiative = document.getElementById('ev-initiative').value;
+  const link = document.getElementById('ev-link').value.trim();
+  const notes = document.getElementById('ev-notes').value.trim();
+
+  let finalNotes = '';
+  if (link) finalNotes += `Meeting Link: ${link}\n`;
+  if (notes) finalNotes += notes;
+
+  const newEventActivity = {
+    id: nextId++,
+    name: name,
+    owner: selectedOwners.join('/'),
+    startDate: date,
+    endDate: date,
+    startTime: startTime,
+    endTime: endTime,
+    reminderTime: reminderTime,
+    status: 'Not Started',
+    type: 'Meeting / Event',
+    initiative: initiative || 'Other',
+    notes: finalNotes.trim(),
+    subActivities: []
+  };
+
+  activities.push(newEventActivity);
+  saveData();
+  closeEventModal();
+  renderAll();
+  showToast(`📅 Event "${name}" scheduled successfully!`, 'success');
+
+  // Offer to open Google Calendar immediately
+  const gcalUrl = buildGCalUrl(newEventActivity);
+  setTimeout(() => {
+    if (confirm(`Event "${name}" scheduled!\n\nWould you like to open Google Calendar right now to sync this meeting?`)) {
+      window.open(gcalUrl, '_blank');
+    }
+  }, 400);
+}
+
+/* ──────────────────────────────────────────
+   15.2 1-DAY DUE REMINDER MODAL
+────────────────────────────────────────── */
+
+function openReminderModal(activityId) {
   const a = activities.find(x => x.id === activityId);
   if (!a) return;
 
-  const subject = encodeURIComponent(`[L&D Reminder] Task Due: ${a.name}`);
-  const body = encodeURIComponent(
-    `Hi Team,\n\nThis is a reminder that the following task is due:\n\n` +
-    `📋 Task: ${a.name}\n` +
-    `👤 Owner: ${a.owner}\n` +
-    `📅 Due Date: ${a.endDate || 'TBD'}\n` +
-    `🎯 Initiative: ${a.initiative || 'N/A'}\n` +
-    `📊 Status: ${a.status}\n\n` +
-    `Please ensure this is completed on time.\n\n` +
-    `Best Regards,\nL&D Team`
-  );
+  const emails = getEmailsForOwner(a.owner);
+  const endDateFormatted = a.endDate ? `${fmtDate(a.endDate)}${a.endTime ? ' at ' + a.endTime : ''}` : 'Tomorrow';
+  const trackerLink = window.location.href;
 
+  let subject = (emailTemplates.reminderSubject || DEFAULT_TEMPLATES.reminderSubject)
+    .replace(/\[Activity Name\]/g, a.name)
+    .replace(/\[Owner Name\]/g, a.owner)
+    .replace(/\[End Date\]/g, endDateFormatted)
+    .replace(/\[Initiative\]/g, a.initiative || 'General')
+    .replace(/\[Status\]/g, a.status);
+
+  let body = (emailTemplates.reminderBody || DEFAULT_TEMPLATES.reminderBody)
+    .replace(/\[Activity Name\]/g, a.name)
+    .replace(/\[Owner Name\]/g, a.owner)
+    .replace(/\[End Date\]/g, endDateFormatted)
+    .replace(/\[Initiative\]/g, a.initiative || 'General')
+    .replace(/\[Status\]/g, a.status)
+    .replace(/\[Tracker Link\]/g, trackerLink);
+
+  currentReminderDraft = {
+    to: emails.join(','),
+    cc: MANAGER_EMAIL,
+    subject: subject,
+    body: body
+  };
+
+  const recipientEl = document.getElementById('reminder-email-recipient');
+  if (recipientEl) {
+    recipientEl.innerHTML = `👤 To: <strong>${esc(a.owner)}</strong> &lt;${emails.join(', ')}&gt;<br/><span style="color:var(--text-secondary);font-size:11px">📋 CC: Prasad Kulkarni (${MANAGER_EMAIL})</span>`;
+  }
+
+  const previewEl = document.getElementById('reminder-email-preview');
+  if (previewEl) {
+    previewEl.value = `Subject: ${subject}\n\n${body}`;
+  }
+
+  document.getElementById('reminder-modal-overlay').classList.add('open');
+}
+
+function closeReminderModal() {
+  document.getElementById('reminder-modal-overlay').classList.remove('open');
+  currentReminderDraft = null;
+}
+
+function onReminderOverlayClick(e) {
+  if (e.target === document.getElementById('reminder-modal-overlay')) closeReminderModal();
+}
+
+function sendReminderGmail() {
+  if (!currentReminderDraft) return;
+  const { to, cc, subject, body } = currentReminderDraft;
+  const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(to)}&cc=${encodeURIComponent(cc)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  window.open(gmailUrl, '_blank');
+  showToast('📧 Opening reminder in Gmail...', 'success');
+  closeReminderModal();
+}
+
+function sendReminderMailto() {
+  if (!currentReminderDraft) return;
+  const { to, cc, subject, body } = currentReminderDraft;
+  const mailtoUri = `mailto:${to}?cc=${encodeURIComponent(cc)}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  
   const link = document.createElement('a');
-  link.href = `mailto:${TEAM_EMAILS.join(',')}?subject=${subject}&body=${body}`;
+  link.href = mailtoUri;
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
-  showToast('📧 Reminder email opened!', 'info');
+  
+  showToast('💻 Opening default mail app...', 'info');
+  closeReminderModal();
+}
+
+function copyReminderEmail() {
+  if (!currentReminderDraft) return;
+  const fullText = `Subject: ${currentReminderDraft.subject}\n\n${currentReminderDraft.body}`;
+  navigator.clipboard.writeText(fullText).then(() => {
+    showToast('📋 Reminder email copied to clipboard!', 'success');
+  }).catch(() => {
+    const previewEl = document.getElementById('reminder-email-preview');
+    if (previewEl) {
+      previewEl.select();
+      document.execCommand('copy');
+      showToast('📋 Copied!', 'success');
+    }
+  });
+}
+
+/* ──────────────────────────────────────────
+   15.3 MANAGER TASK ASSIGNMENT MODAL
+────────────────────────────────────────── */
+
+function triggerManagerAssignmentNotification(activity) {
+  const emails = getEmailsForOwner(activity.owner);
+  const dueFormatted = activity.endDate
+    ? `${fmtDate(activity.endDate)}${activity.endTime ? ' at ' + activity.endTime : ''}`
+    : (activity.startDate ? fmtDate(activity.startDate) : 'To be confirmed');
+  const details = activity.notes && activity.notes.trim()
+    ? activity.notes.trim()
+    : 'Talk with Prasad Kulkarni (prasad.kulkarni1@onixnet.com) for confirmation / details.';
+  const trackerLink = window.location.href;
+
+  let subject = (emailTemplates.assignSubject || DEFAULT_TEMPLATES.assignSubject)
+    .replace(/\[Activity Name\]/g, activity.name)
+    .replace(/\[Owner Name\]/g, activity.owner)
+    .replace(/\[End Date\]/g, dueFormatted)
+    .replace(/\[Initiative\]/g, activity.initiative || 'General')
+    .replace(/\[Status\]/g, activity.status || 'Not Started');
+
+  let body = (emailTemplates.assignBody || DEFAULT_TEMPLATES.assignBody)
+    .replace(/\[Activity Name\]/g, activity.name)
+    .replace(/\[Owner Name\]/g, activity.owner)
+    .replace(/\[End Date\]/g, dueFormatted)
+    .replace(/\[Initiative\]/g, activity.initiative || 'General')
+    .replace(/\[Status\]/g, activity.status || 'Not Started')
+    .replace(/\[Notes\]/g, details)
+    .replace(/\[Tracker Link\]/g, trackerLink);
+
+  currentAssignDraft = {
+    to: emails.join(','),
+    cc: MANAGER_EMAIL,
+    subject: subject,
+    body: body
+  };
+
+  const recipientEl = document.getElementById('assign-email-recipients');
+  if (recipientEl) {
+    recipientEl.innerHTML = `👤 To: <strong>${esc(activity.owner)}</strong> &lt;${emails.join(', ')}&gt;<br/><span style="color:var(--text-secondary);font-size:11px">📋 Sender / CC: Prasad Kulkarni (${MANAGER_EMAIL})</span>`;
+  }
+
+  const previewEl = document.getElementById('assign-email-preview');
+  if (previewEl) {
+    previewEl.value = `Subject: ${subject}\n\n${body}`;
+  }
+
+  document.getElementById('task-assign-modal-overlay').classList.add('open');
+}
+
+function closeAssignModal() {
+  document.getElementById('task-assign-modal-overlay').classList.remove('open');
+  currentAssignDraft = null;
+}
+
+function onAssignOverlayClick(e) {
+  if (e.target === document.getElementById('task-assign-modal-overlay')) closeAssignModal();
+}
+
+function sendAssignGmail() {
+  if (!currentAssignDraft) return;
+  const { to, cc, subject, body } = currentAssignDraft;
+  const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(to)}&cc=${encodeURIComponent(cc)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  window.open(gmailUrl, '_blank');
+  showToast('📧 Opening task assignment in Gmail...', 'success');
+  closeAssignModal();
+}
+
+function sendAssignMailto() {
+  if (!currentAssignDraft) return;
+  const { to, cc, subject, body } = currentAssignDraft;
+  const mailtoUri = `mailto:${to}?cc=${encodeURIComponent(cc)}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  
+  const link = document.createElement('a');
+  link.href = mailtoUri;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  
+  showToast('💻 Opening default mail app...', 'info');
+  closeAssignModal();
+}
+
+function copyAssignEmail() {
+  if (!currentAssignDraft) return;
+  const fullText = `Subject: ${currentAssignDraft.subject}\n\n${currentAssignDraft.body}`;
+  navigator.clipboard.writeText(fullText).then(() => {
+    showToast('📋 Task assignment email copied to clipboard!', 'success');
+  }).catch(() => {
+    const previewEl = document.getElementById('assign-email-preview');
+    if (previewEl) {
+      previewEl.select();
+      document.execCommand('copy');
+      showToast('📋 Copied!', 'success');
+    }
+  });
+}
+
+function sendReminderEmail(activityId) {
+  openReminderModal(activityId);
 }
 
 /* ──────────────────────────────────────────
