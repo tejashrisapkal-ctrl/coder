@@ -123,7 +123,7 @@ L&D Team`,
   assignSubject: 'New Task Assigned: [Activity Name]',
   assignBody: `Hi [Owner Name],
 
-A new task has been assigned to you by Prasad Kulkarni (prasad.kulkarni1@onixnet.com):
+A new task has been assigned to you by [Assigned By] ([Assigned By Email]):
 
 📌 Task Name: [Activity Name]
 🎯 Initiative: [Initiative]
@@ -134,8 +134,8 @@ A new task has been assigned to you by Prasad Kulkarni (prasad.kulkarni1@onixnet
 Please review the task in the L&D Tracker: [Tracker Link]
 
 Best regards,
-Prasad Kulkarni
-L&D Management`
+[Assigned By]
+L&D Team`
 };
 
 let emailTemplates = { ...DEFAULT_TEMPLATES };
@@ -286,6 +286,7 @@ function saveSettings() {
   const rBody = document.getElementById('tpl-reminder-body')?.value.trim();
   const aSub = document.getElementById('tpl-assign-subject')?.value.trim();
   const aBody = document.getElementById('tpl-assign-body')?.value.trim();
+  const webhookUrl = document.getElementById('cfg-webhook-url')?.value.trim();
 
   emailTemplates = {
     reminderSubject: rSub || DEFAULT_TEMPLATES.reminderSubject,
@@ -295,8 +296,69 @@ function saveSettings() {
   };
 
   localStorage.setItem('ld_tracker_templates', JSON.stringify(emailTemplates));
+  if (webhookUrl) localStorage.setItem('ld_tracker_webhook_url', webhookUrl);
+
   closeSettingsModal();
   showToast('💾 Settings and templates saved!', 'success');
+}
+
+function copyAppsScriptCode() {
+  const code = `/* PASTE THIS INTO Extensions → Apps Script in your Google Sheet */
+const TEAM_EMAIL_MAP = {
+  'tejashri': 'tejashri.sapkal@onixnet.com',
+  'tanaya':   'tanaya.sankapal@onixnet.com',
+  'nikhil':   'nikhil.shelke@onixnet.com',
+  'deepraj':  'deepraj.bhosale@onixnet.com',
+};
+const MANAGER_EMAIL = 'prasad.kulkarni1@onixnet.com';
+
+function sendDailyAutomatedReminders() {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+  const data = sheet.getDataRange().getValues();
+  const headers = data[0].map(h => String(h).trim().toLowerCase());
+  const colName = headers.findIndex(h => h.includes('activity') || h.includes('name'));
+  const colOwner = headers.findIndex(h => h.includes('owner'));
+  const colEnd = headers.findIndex(h => h.includes('end') || h.includes('due'));
+  const colStatus = headers.findIndex(h => h.includes('status'));
+  const colInit = headers.findIndex(h => h.includes('initiative'));
+  const today = new Date(); today.setHours(0,0,0,0);
+  const tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1);
+  const tStr = Utilities.formatDate(tomorrow, Session.getScriptTimeZone(), 'yyyy-MM-dd');
+  for (let r = 1; r < data.length; r++) {
+    const row = data[r];
+    const name = String(row[colName]||'').trim();
+    const owner = String(row[colOwner]||'').trim();
+    const status = String(row[colStatus]||'').trim();
+    const initiative = String(row[colInit]||'General').trim();
+    const rawEnd = row[colEnd];
+    if (!name || !rawEnd || status.toLowerCase()==='completed') continue;
+    const endDt = rawEnd instanceof Date ? rawEnd : new Date(rawEnd);
+    if (isNaN(endDt.getTime())) continue;
+    const endStr = Utilities.formatDate(endDt, Session.getScriptTimeZone(), 'yyyy-MM-dd');
+    const fmtDate = Utilities.formatDate(endDt, Session.getScriptTimeZone(), 'dd MMM yyyy');
+    if (endStr === tStr) {
+      const parts = owner.split('/').map(p=>p.trim().toLowerCase());
+      const emails = [];
+      parts.forEach(p => { if(TEAM_EMAIL_MAP[p]) emails.push(TEAM_EMAIL_MAP[p]); });
+      if (!emails.length) emails.push(MANAGER_EMAIL);
+      GmailApp.sendEmail(emails.join(','),
+        'Gentle Reminder: ' + name + ' is due tomorrow',
+        'Hi ' + owner + ',\\n\\nThis is a reminder that the following task is due tomorrow:\\n\\nActivity: ' + name + '\\nInitiative: ' + initiative + '\\nStatus: ' + status + '\\nDue Date: ' + fmtDate + '\\n\\nPlease update the status once completed.\\n\\nBest regards,\\nL&D Team',
+        { cc: MANAGER_EMAIL, name: 'L&D Activity Tracker' });
+    }
+  }
+}
+function setupAutomaticTriggers() {
+  ScriptApp.getProjectTriggers().forEach(t => ScriptApp.deleteTrigger(t));
+  ScriptApp.newTrigger('sendDailyAutomatedReminders').timeBased().atHour(8).everyDays(1).create();
+  Logger.log('✅ Daily 8AM trigger installed!');
+}`;
+
+  navigator.clipboard.writeText(code).then(() => {
+    showToast('📋 Apps Script code copied! Go to your Google Sheet → Extensions → Apps Script → Paste & Run setupAutomaticTriggers', 'success');
+  }).catch(() => {
+    showToast('❌ Copy failed. Open google_apps_script.js file manually.', 'error');
+  });
 }
 
 function populateDropdowns() {
@@ -1390,7 +1452,7 @@ function openModal(id = null) {
   const subList = document.getElementById('subactivities-list');
   subList.innerHTML = '';
 
-  const managerGroup = document.getElementById('f-manager-notify-group');
+  const notifyGroup = document.getElementById('f-assign-notify-group');
 
   if (id) {
     const a = activities.find(x => x.id === id);
@@ -1419,7 +1481,12 @@ function openModal(id = null) {
     document.getElementById('f-initiative').value = a.initiative || '';
     document.getElementById('f-notes').value = a.notes || '';
 
-    if (managerGroup) managerGroup.style.display = 'none';
+    // Pre-select assigned-by
+    const assignedByEl = document.getElementById('f-assigned-by');
+    if (assignedByEl && a.assignedBy) assignedByEl.value = a.assignedBy;
+
+    // Hide notification for edits
+    if (notifyGroup) notifyGroup.style.display = 'none';
 
     // Sub-activities
     subSection.style.display = 'block';
@@ -1429,9 +1496,8 @@ function openModal(id = null) {
   } else {
     document.getElementById('modal-title').textContent = '➕ Add Activity';
     document.getElementById('modal-save-btn').textContent = 'Save Activity';
-    // When manager or user assigns new task, status defaults to 'Not Started'
     document.getElementById('f-status').value = 'Not Started';
-    document.getElementById('f-start').value = new Date().toISOString().slice(0,10);
+    document.getElementById('f-start').value = new Date().toISOString().slice(0, 10);
     const startTimeEl = document.getElementById('f-start-time');
     if (startTimeEl) startTimeEl.value = '10:00';
     document.getElementById('f-end').value = '';
@@ -1440,9 +1506,10 @@ function openModal(id = null) {
     const reminderTimeEl = document.getElementById('f-reminder-time');
     if (reminderTimeEl) reminderTimeEl.value = '1 day before';
 
-    if (managerGroup) {
-      managerGroup.style.display = 'block';
-      const notifyCb = document.getElementById('f-notify-manager');
+    // Show notify checkbox for new activities
+    if (notifyGroup) {
+      notifyGroup.style.display = 'block';
+      const notifyCb = document.getElementById('f-notify-assignee');
       if (notifyCb) notifyCb.checked = true;
     }
     subSection.style.display = 'block';
@@ -1480,7 +1547,7 @@ function onOverlayClick(e) {
 function saveActivity(e) {
   e.preventDefault();
 
-  // Get selected owners
+  // Get selected owners (assignees)
   const selectedOwners = [];
   document.querySelectorAll('#f-owner-checkboxes input:checked').forEach(cb => {
     selectedOwners.push(cb.value);
@@ -1498,7 +1565,13 @@ function saveActivity(e) {
     if (name) subActivities.push({ name, status });
   });
 
-  const shouldNotifyManager = !editingId && document.getElementById('f-notify-manager')?.checked;
+  // Who is assigning (the "Assigned By" person)
+  const assignedByEl = document.getElementById('f-assigned-by');
+  const assignedBy = assignedByEl ? assignedByEl.value : 'Tejashri';
+
+  // Should we send notification? Only for new activities when checkbox is checked
+  const notifyCheckbox = document.getElementById('f-notify-assignee') || document.getElementById('f-notify-manager');
+  const shouldSendNotification = !editingId && notifyCheckbox?.checked;
 
   const data = {
     name:         document.getElementById('f-name').value.trim(),
@@ -1512,6 +1585,7 @@ function saveActivity(e) {
     type:         document.getElementById('f-type').value,
     initiative:   document.getElementById('f-initiative').value,
     notes:        document.getElementById('f-notes').value.trim(),
+    assignedBy:   assignedBy,
     subActivities: subActivities,
   };
 
@@ -1524,17 +1598,18 @@ function saveActivity(e) {
   } else {
     savedActivity = { id: nextId++, ...data };
     activities.push(savedActivity);
-    showToast('🎉 Activity added successfully!', 'success');
+    showToast('🎉 Activity added! Email notification being prepared…', 'success');
   }
 
   saveData();
   closeModal();
   renderAll();
 
-  if (shouldNotifyManager) {
+  // Send assignment email immediately via Gmail compose (opens in new tab)
+  if (shouldSendNotification) {
     setTimeout(() => {
-      triggerManagerAssignmentNotification(savedActivity);
-    }, 300);
+      sendAssignmentEmailViaGmail(savedActivity);
+    }, 400);
   }
 }
 
@@ -1961,22 +2036,60 @@ function copyReminderEmail() {
 }
 
 /* ──────────────────────────────────────────
-   15.3 MANAGER TASK ASSIGNMENT MODAL
+   15.3 TASK ASSIGNMENT EMAIL
 ────────────────────────────────────────── */
 
-function triggerManagerAssignmentNotification(activity) {
-  const emails = getEmailsForOwner(activity.owner);
+/**
+ * Maps owner name → email address
+ */
+function getEmailForAssigner(assignerName) {
+  if (!assignerName) return '';
+  const key = assignerName.toLowerCase().replace(/\s+/g, ' ').trim();
+  // Check full name first
+  if (OWNER_EMAILS[assignerName]) return OWNER_EMAILS[assignerName];
+  // Check partial
+  for (const [name, email] of Object.entries(OWNER_EMAILS)) {
+    if (key.includes(name.toLowerCase()) || name.toLowerCase().includes(key)) return email;
+  }
+  // Manager fallback
+  if (key.includes('prasad')) return MANAGER_EMAIL;
+  return '';
+}
+
+/**
+ * Directly opens Gmail compose with the assignment email pre-filled.
+ * This is the MAIN function — opens immediately without any modal.
+ */
+function sendAssignmentEmailViaGmail(activity) {
+  const assignedBy = activity.assignedBy || 'L&D Team';
+  const assignerEmail = getEmailForAssigner(assignedBy) || MANAGER_EMAIL;
+
+  const assigneeEmails = getEmailsForOwner(activity.owner);
+
+  // Remove assigner's own email from TO if they assigned to themselves
+  const toEmails = assigneeEmails.filter(em => em !== assignerEmail);
+  if (!toEmails.length) {
+    // Assigned to themselves — still CC manager
+    showToast('ℹ️ Task saved. You assigned it to yourself.', 'info');
+    return;
+  }
+
   const dueFormatted = activity.endDate
     ? `${fmtDate(activity.endDate)}${activity.endTime ? ' at ' + activity.endTime : ''}`
     : (activity.startDate ? fmtDate(activity.startDate) : 'To be confirmed');
+
   const details = activity.notes && activity.notes.trim()
     ? activity.notes.trim()
-    : 'Talk with Prasad Kulkarni (prasad.kulkarni1@onixnet.com) for confirmation / details.';
+    : 'Please talk with the assigner for more details / confirmation.';
+
   const trackerLink = window.location.href;
 
+  // Build subject & body from template, replacing [Assigned By] & [Assigned By Email]
   let subject = (emailTemplates.assignSubject || DEFAULT_TEMPLATES.assignSubject)
     .replace(/\[Activity Name\]/g, activity.name)
     .replace(/\[Owner Name\]/g, activity.owner)
+    .replace(/\[Assigned By\]/g, assignedBy)
+    .replace(/\[Assigned By Email\]/g, assignerEmail)
     .replace(/\[End Date\]/g, dueFormatted)
     .replace(/\[Initiative\]/g, activity.initiative || 'General')
     .replace(/\[Status\]/g, activity.status || 'Not Started');
@@ -1984,22 +2097,93 @@ function triggerManagerAssignmentNotification(activity) {
   let body = (emailTemplates.assignBody || DEFAULT_TEMPLATES.assignBody)
     .replace(/\[Activity Name\]/g, activity.name)
     .replace(/\[Owner Name\]/g, activity.owner)
+    .replace(/\[Assigned By\]/g, assignedBy)
+    .replace(/\[Assigned By Email\]/g, assignerEmail)
     .replace(/\[End Date\]/g, dueFormatted)
     .replace(/\[Initiative\]/g, activity.initiative || 'General')
     .replace(/\[Status\]/g, activity.status || 'Not Started')
     .replace(/\[Notes\]/g, details)
     .replace(/\[Tracker Link\]/g, trackerLink);
 
+  // CC: manager if not already in to/from
+  const ccEmails = [];
+  if (!toEmails.includes(MANAGER_EMAIL) && assignerEmail !== MANAGER_EMAIL) {
+    ccEmails.push(MANAGER_EMAIL);
+  }
+
+  // Build Gmail compose URL — opens FROM the user's logged-in Gmail account
+  const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1` +
+    `&to=${encodeURIComponent(toEmails.join(','))}` +
+    (ccEmails.length ? `&cc=${encodeURIComponent(ccEmails.join(','))}` : '') +
+    `&su=${encodeURIComponent(subject)}` +
+    `&body=${encodeURIComponent(body)}`;
+
+  // Open Gmail compose immediately in a new tab
+  window.open(gmailUrl, '_blank');
+  showToast(`📧 Gmail opened! Send the email to ${activity.owner} (${toEmails.join(', ')})`, 'success');
+}
+
+/**
+ * Legacy function kept for backward compatibility (called from existing modal buttons).
+ * Now also uses the "Assigned By" field.
+ */
+function triggerManagerAssignmentNotification(activity) {
+  const assignedBy = activity.assignedBy || 'L&D Team';
+  const assignerEmail = getEmailForAssigner(assignedBy) || MANAGER_EMAIL;
+  const emails = getEmailsForOwner(activity.owner);
+  const dueFormatted = activity.endDate
+    ? `${fmtDate(activity.endDate)}${activity.endTime ? ' at ' + activity.endTime : ''}`
+    : (activity.startDate ? fmtDate(activity.startDate) : 'To be confirmed');
+  const details = activity.notes && activity.notes.trim()
+    ? activity.notes.trim()
+    : `Please talk with ${assignedBy} (${assignerEmail}) for confirmation / details.`;
+  const trackerLink = window.location.href;
+
+  let subject = (emailTemplates.assignSubject || DEFAULT_TEMPLATES.assignSubject)
+    .replace(/\[Activity Name\]/g, activity.name)
+    .replace(/\[Owner Name\]/g, activity.owner)
+    .replace(/\[Assigned By\]/g, assignedBy)
+    .replace(/\[Assigned By Email\]/g, assignerEmail)
+    .replace(/\[End Date\]/g, dueFormatted)
+    .replace(/\[Initiative\]/g, activity.initiative || 'General')
+    .replace(/\[Status\]/g, activity.status || 'Not Started');
+
+  let body = (emailTemplates.assignBody || DEFAULT_TEMPLATES.assignBody)
+    .replace(/\[Activity Name\]/g, activity.name)
+    .replace(/\[Owner Name\]/g, activity.owner)
+    .replace(/\[Assigned By\]/g, assignedBy)
+    .replace(/\[Assigned By Email\]/g, assignerEmail)
+    .replace(/\[End Date\]/g, dueFormatted)
+    .replace(/\[Initiative\]/g, activity.initiative || 'General')
+    .replace(/\[Status\]/g, activity.status || 'Not Started')
+    .replace(/\[Notes\]/g, details)
+    .replace(/\[Tracker Link\]/g, trackerLink);
+
+  const ccEmails = [];
+  if (!emails.includes(MANAGER_EMAIL) && assignerEmail !== MANAGER_EMAIL) {
+    ccEmails.push(MANAGER_EMAIL);
+  }
+
   currentAssignDraft = {
     to: emails.join(','),
-    cc: MANAGER_EMAIL,
+    cc: ccEmails.join(','),
+    from: assignerEmail,
     subject: subject,
-    body: body
+    body: body,
+    assignedBy: assignedBy,
   };
 
   const recipientEl = document.getElementById('assign-email-recipients');
   if (recipientEl) {
-    recipientEl.innerHTML = `👤 To: <strong>${esc(activity.owner)}</strong> &lt;${emails.join(', ')}&gt;<br/><span style="color:var(--text-secondary);font-size:11px">📋 Sender / CC: Prasad Kulkarni (${MANAGER_EMAIL})</span>`;
+    recipientEl.innerHTML =
+      `<div style="margin-bottom:4px">📤 <strong>From:</strong> ${esc(assignedBy)} &lt;${assignerEmail}&gt;</div>` +
+      `<div>👤 <strong>To:</strong> ${esc(activity.owner)} &lt;${emails.join(', ')}&gt;</div>` +
+      (ccEmails.length ? `<div style="font-size:11px;color:var(--text-secondary);margin-top:2px">CC: ${ccEmails.join(', ')}</div>` : '');
+  }
+
+  const banner = document.getElementById('assign-status-banner');
+  if (banner) {
+    banner.innerHTML = `Task <strong>"${esc(activity.name)}"</strong> assigned to <strong>${esc(activity.owner)}</strong> with status <span style="color:#f46262;font-weight:700">Not Started</span>.<br/>Click <strong>Open in Gmail</strong> to send the email from <strong>${esc(assignedBy)}'s</strong> Gmail account.`;
   }
 
   const previewEl = document.getElementById('assign-email-preview');
@@ -2022,23 +2206,26 @@ function onAssignOverlayClick(e) {
 function sendAssignGmail() {
   if (!currentAssignDraft) return;
   const { to, cc, subject, body } = currentAssignDraft;
-  const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(to)}&cc=${encodeURIComponent(cc)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  // Build Gmail compose URL — Gmail opens from whoever is logged into Gmail in the browser
+  let gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(to)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  if (cc) gmailUrl += `&cc=${encodeURIComponent(cc)}`;
   window.open(gmailUrl, '_blank');
-  showToast('📧 Opening task assignment in Gmail...', 'success');
+  showToast('📧 Gmail opened! Click Send to deliver the email.', 'success');
   closeAssignModal();
 }
 
 function sendAssignMailto() {
   if (!currentAssignDraft) return;
   const { to, cc, subject, body } = currentAssignDraft;
-  const mailtoUri = `mailto:${to}?cc=${encodeURIComponent(cc)}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-  
+  let mailtoUri = `mailto:${to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  if (cc) mailtoUri += `&cc=${encodeURIComponent(cc)}`;
+
   const link = document.createElement('a');
   link.href = mailtoUri;
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
-  
+
   showToast('💻 Opening default mail app...', 'info');
   closeAssignModal();
 }
