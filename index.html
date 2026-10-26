@@ -383,14 +383,24 @@
             <option value="">— None —</option>
           </select>
         </div>
+        <div class="form-group">
+          <label class="form-label">Assigned By *</label>
+          <select id="f-assigned-by">
+            <option value="Tanaya">Tanaya (tanaya.sankapal@onixnet.com)</option>
+            <option value="Tejashri">Tejashri (tejashri.sapkal@onixnet.com)</option>
+            <option value="Nikhil">Nikhil (nikhil.shelke@onixnet.com)</option>
+            <option value="Deepraj">Deepraj (deepraj.bhosale@onixnet.com)</option>
+            <option value="Prasad Kulkarni">Prasad Kulkarni (Manager - prasad.kulkarni1@onixnet.com)</option>
+          </select>
+        </div>
         <div class="form-group full">
           <label class="form-label">Notes</label>
           <textarea id="f-notes" placeholder="Any additional notes or context…"></textarea>
         </div>
-        <div class="form-group full" id="f-manager-notify-group">
-          <label style="font-size:12px;font-weight:600;display:flex;align-items:center;gap:8px;cursor:pointer;background:rgba(48,73,109,0.06);padding:8px 12px;border-radius:8px;border:1px solid var(--border);">
-            <input type="checkbox" id="f-notify-manager" checked style="accent-color:var(--brand-primary);width:16px;height:16px;" />
-            <span>📧 Send task assignment email to associate (From Manager: Prasad Kulkarni - prasad.kulkarni1@onixnet.com)</span>
+        <div class="form-group full" id="f-assign-notify-group">
+          <label style="font-size:12px;font-weight:600;display:flex;align-items:center;gap:8px;cursor:pointer;background:rgba(48,73,109,0.06);padding:10px 14px;border-radius:8px;border:1px solid var(--border);">
+            <input type="checkbox" id="f-notify-assignee" checked style="accent-color:var(--brand-primary);width:16px;height:16px;" />
+            <span>📧 Send task assignment email to assignee from my mailbox (Opens Gmail compose ready to send)</span>
           </label>
         </div>
         <!-- Sub-activities section -->
@@ -649,15 +659,18 @@ Best regards,
 L&amp;D Team</textarea>
     </div>
 
-    <!-- Manager Assignment Template -->
+    <!-- Assignment Template -->
     <div class="form-group" style="margin-bottom:16px">
-      <label class="form-label">New Task Assigned Notification Template (From Manager: Prasad Kulkarni)</label>
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <label class="form-label">Task Assignment Notification Email Template</label>
+        <span style="font-size:10px;color:var(--text-muted)">Tags: [Activity Name], [Owner Name], [Assigned By], [Assigned By Email], [End Date], [Initiative], [Notes]</span>
+      </div>
       <label style="font-size:11px;font-weight:600;color:var(--text-secondary);margin-top:4px">Subject:</label>
       <input type="text" id="tpl-assign-subject" value="New Task Assigned: [Activity Name]" />
       <label style="font-size:11px;font-weight:600;color:var(--text-secondary);margin-top:6px">Body:</label>
       <textarea id="tpl-assign-body" style="min-height:130px;font-family:monospace;font-size:11.5px;line-height:1.5;">Hi [Owner Name],
 
-A new task has been assigned to you by Prasad Kulkarni (prasad.kulkarni1@onixnet.com):
+A new task has been assigned to you by [Assigned By] ([Assigned By Email]):
 
 📌 Task Name: [Activity Name]
 🎯 Initiative: [Initiative]
@@ -668,8 +681,27 @@ A new task has been assigned to you by Prasad Kulkarni (prasad.kulkarni1@onixnet
 Please review the task in the L&amp;D Tracker: [Tracker Link]
 
 Best regards,
-Prasad Kulkarni
-L&amp;D Management</textarea>
+[Assigned By]
+L&amp;D Team</textarea>
+    </div>
+
+    <!-- 24/7 Automated Reminders & Google Cloud Background Email Section -->
+    <div style="margin-bottom:16px;padding:14px;background:rgba(48,73,109,0.05);border-radius:10px;border:1px solid var(--border)">
+      <div style="font-size:12.5px;font-weight:700;color:var(--brand-primary);display:flex;align-items:center;gap:6px;margin-bottom:6px">
+        <span>⚡ 24/7 Automated Email Reminders (Google Cloud)</span>
+        <span class="badge badge-ongoing" style="font-size:9px">Always-On</span>
+      </div>
+      <p style="font-size:11.5px;color:var(--text-secondary);margin-bottom:10px;line-height:1.4">
+        To deliver reminder emails <strong>automatically on time</strong> (1 day before &amp; 1 hour before) even when your browser is closed, run the Apps Script inside your Google Sheet. It sends emails 24/7 from Google Cloud!
+      </p>
+      <div class="form-group" style="margin-bottom:10px">
+        <label style="font-size:11px;font-weight:600;color:var(--text-secondary)">Optional: Google Apps Script Web App URL (for 100% silent background sending):</label>
+        <input type="url" id="cfg-webhook-url" placeholder="https://script.google.com/macros/s/.../exec" style="font-size:11px" />
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button type="button" class="btn btn-secondary btn-sm" onclick="copyAppsScriptCode()">📋 Copy Apps Script Code</button>
+        <a href="https://docs.google.com/spreadsheets/d/1B5cI9UpRKemHf7OnwanVR9Lz-JUIpjwgVLgUOVIk6qY/edit?gid=2050775428#gid=2050775428" target="_blank" class="btn btn-secondary btn-sm">📊 Open Google Sheet</a>
+      </div>
     </div>
 
     <div class="modal-footer">
@@ -681,14 +713,12 @@ L&amp;D Management</textarea>
 
 <!-- ══════════ TASK ASSIGN NOTIFICATION POPUP ══════════ -->
 <div class="modal-overlay" id="task-assign-modal-overlay" onclick="onAssignOverlayClick(event)">
-  <div class="modal" style="max-width:540px">
-    <div class="modal-title">📧 Task Assigned — Email Notification</div>
-    <p style="color:var(--text-secondary);font-size:12px;margin-bottom:12px">
-      Task created with status <strong>Not Started</strong>. An email notification has been prepared from Manager <strong>Prasad Kulkarni (prasad.kulkarni1@onixnet.com)</strong>:
-    </p>
+  <div class="modal" style="max-width:560px">
+    <div class="modal-title">📧 Task Assignment — Notification Email</div>
+    <div id="assign-status-banner" style="background:rgba(48,73,109,0.08);border:1px solid var(--border);padding:10px 14px;border-radius:8px;font-size:12px;margin-bottom:12px;color:var(--text-primary);line-height:1.4;"></div>
     <div class="form-group" style="margin-bottom:12px">
-      <label class="form-label">Recipients</label>
-      <div id="assign-email-recipients" style="font-size:12px;font-weight:600;color:var(--text-primary);padding:6px 10px;background:var(--bg-input);border-radius:6px;border:1px solid var(--border);"></div>
+      <label class="form-label">Sender &amp; Recipients</label>
+      <div id="assign-email-recipients" style="font-size:12px;font-weight:600;color:var(--text-primary);padding:8px 12px;background:var(--bg-input);border-radius:6px;border:1px solid var(--border);"></div>
     </div>
     <div class="form-group" style="margin-bottom:14px">
       <label class="form-label">Email Draft Preview</label>
