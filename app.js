@@ -56,17 +56,18 @@ const DEFAULT_ACTIVITIES = [
 ];
 
 const TEAM_EMAILS = [
-  'tejashri.sapkal@onixnet.com',
+  'tejashri.sapkal@onixnet.us',
   'tanaya.sankapal@onixnet.com',
   'nikhil.shelke@onixnet.com',
   'deepraj.bhosale@onixnet.com',
 ];
 
 const OWNER_EMAILS = {
-  'Tejashri': 'tejashri.sapkal@onixnet.com',
-  'Tanaya':   'tanaya.sankapal@onixnet.com',
-  'Nikhil':   'nikhil.shelke@onixnet.com',
-  'Deepraj':  'deepraj.bhosale@onixnet.com',
+  'Tejashri':        'tejashri.sapkal@onixnet.us',
+  'Tanaya':          'tanaya.sankapal@onixnet.com',
+  'Nikhil':          'nikhil.shelke@onixnet.com',
+  'Deepraj':         'deepraj.bhosale@onixnet.com',
+  'Prasad Kulkarni': 'prasad.kulkarni1@onixnet.com',
 };
 
 const OWNERS = ['Tejashri', 'Tanaya', 'Nikhil', 'Deepraj'];
@@ -264,11 +265,13 @@ function openSettingsModal() {
   const rBody = document.getElementById('tpl-reminder-body');
   const aSub = document.getElementById('tpl-assign-subject');
   const aBody = document.getElementById('tpl-assign-body');
+  const whInput = document.getElementById('cfg-webhook-url');
 
   if (rSub) rSub.value = emailTemplates.reminderSubject || DEFAULT_TEMPLATES.reminderSubject;
   if (rBody) rBody.value = emailTemplates.reminderBody || DEFAULT_TEMPLATES.reminderBody;
   if (aSub) aSub.value = emailTemplates.assignSubject || DEFAULT_TEMPLATES.assignSubject;
   if (aBody) aBody.value = emailTemplates.assignBody || DEFAULT_TEMPLATES.assignBody;
+  if (whInput) whInput.value = localStorage.getItem('ld_tracker_webhook_url') || '';
 
   document.getElementById('settings-modal-overlay').classList.add('open');
 }
@@ -305,7 +308,7 @@ function saveSettings() {
 function copyAppsScriptCode() {
   const code = `/* PASTE THIS INTO Extensions → Apps Script in your Google Sheet */
 const TEAM_EMAIL_MAP = {
-  'tejashri': 'tejashri.sapkal@onixnet.com',
+  'tejashri': 'tejashri.sapkal@onixnet.us',
   'tanaya':   'tanaya.sankapal@onixnet.com',
   'nikhil':   'nikhil.shelke@onixnet.com',
   'deepraj':  'deepraj.bhosale@onixnet.com',
@@ -2111,7 +2114,39 @@ function sendAssignmentEmailViaGmail(activity) {
     ccEmails.push(MANAGER_EMAIL);
   }
 
-  // Build Gmail compose URL — opens FROM the user's logged-in Gmail account
+  // 1. Check if Google Apps Script Webhook is configured for 100% silent direct sending:
+  const webhookUrl = localStorage.getItem('ld_tracker_webhook_url');
+  if (webhookUrl) {
+    showToast(`⏳ Sending assignment email to ${activity.owner} from ${assignedBy} in background...`, 'info');
+    fetch(webhookUrl, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'assign',
+        to: toEmails.join(','),
+        cc: ccEmails.join(','),
+        subject: subject,
+        body: body,
+        fromName: `${assignedBy} via L&D Tracker`
+      })
+    }).then(() => {
+      showToast(`✅ Email sent directly to ${activity.owner}! No need to open Gmail.`, 'success');
+    }).catch(err => {
+      console.warn('Webhook delivery failed, opening Gmail fallback:', err);
+      // Fallback to Gmail if webhook fails
+      const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1` +
+        `&to=${encodeURIComponent(toEmails.join(','))}` +
+        (ccEmails.length ? `&cc=${encodeURIComponent(ccEmails.join(','))}` : '') +
+        `&su=${encodeURIComponent(subject)}` +
+        `&body=${encodeURIComponent(body)}`;
+      window.open(gmailUrl, '_blank');
+      showToast(`📧 Gmail opened as fallback!`, 'info');
+    });
+    return;
+  }
+
+  // 2. Fallback if webhook is not configured: open Gmail compose
   const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1` +
     `&to=${encodeURIComponent(toEmails.join(','))}` +
     (ccEmails.length ? `&cc=${encodeURIComponent(ccEmails.join(','))}` : '') +

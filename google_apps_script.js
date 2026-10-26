@@ -10,7 +10,7 @@
  *    3. Direct background email sending when anyone assigns a task in the Tracker.
  * 
  *  TEAM DIRECTORY:
- *    - Tejashri:        tejashri.sapkal@onixnet.com
+ *    - Tejashri:        tejashri.sapkal@onixnet.us
  *    - Tanaya:          tanaya.sankapal@onixnet.com
  *    - Nikhil:          nikhil.shelke@onixnet.com
  *    - Deepraj:         deepraj.bhosale@onixnet.com
@@ -31,7 +31,7 @@
  */
 
 const TEAM_EMAIL_MAP = {
-  'tejashri': 'tejashri.sapkal@onixnet.com',
+  'tejashri': 'tejashri.sapkal@onixnet.us',
   'tanaya':   'tanaya.sankapal@onixnet.com',
   'nikhil':   'nikhil.shelke@onixnet.com',
   'deepraj':  'deepraj.bhosale@onixnet.com',
