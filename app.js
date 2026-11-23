@@ -53,6 +53,7 @@ const DEFAULT_ACTIVITIES = [
   { id: 19, name: 'Silver/Gold Bench Program Refresh',      owner: 'Nikhil',         startDate: '2026-05-01', endDate: '2026-10-31', status: 'Not Started', type: '',              initiative: 'Silver/Gold - Project and Bench', notes: '', subActivities: [] },
   { id: 20, name: 'AI Hackathon Preparation',               owner: 'Deepraj',        startDate: '2026-06-01', endDate: '2026-07-31', status: 'Not Started', type: 'One-time',      initiative: 'AI Hackathon', notes: '', subActivities: [] },
   { id: 21, name: 'First Time Manager Boot Camp Preparation', owner: 'Tejashri',     startDate: '2026-04-08', endDate: '2026-05-15', status: 'In Progress', type: 'Quarterly',     initiative: 'Leadership Training', notes: 'Connect Session with Nikita Kamath', subActivities: [] },
+  { id: 22, name: 'DRP Framework for Appraisals',              owner: 'Tanaya/Tejashri', startDate: '2026-11-01', endDate: '',           status: 'In Progress', type: '',              initiative: 'DRI/DRP/PNH',        notes: '', subActivities: [] },
 ];
 
 const TEAM_EMAILS = [
@@ -148,7 +149,7 @@ const GOOGLE_SHEET_URL = 'https://docs.google.com/spreadsheets/d/1B5cI9UpRKemHf7
 ────────────────────────────────────────── */
 
 let activities = [];
-let nextId = 22;
+let nextId = 23;
 let editingId = null;
 let sortCol = 'id';
 let sortDir = 1;
@@ -183,6 +184,24 @@ function loadData() {
     try {
       activities = JSON.parse(stored);
       activities.forEach(a => { if (!a.subActivities) a.subActivities = []; });
+
+      // Merge any DEFAULT_ACTIVITIES that are missing from stored data.
+      // This ensures activities added to the shared code (DEFAULT_ACTIVITIES)
+      // appear for ALL users even when they already have localStorage data.
+      let merged = false;
+      DEFAULT_ACTIVITIES.forEach(def => {
+        const exists = activities.some(a => a.id === def.id);
+        if (!exists) {
+          activities.push({ ...def, subActivities: [...(def.subActivities || [])] });
+          merged = true;
+        }
+      });
+      if (merged) {
+        // Keep sorted by id so sequence is identical for everyone
+        activities.sort((a, b) => a.id - b.id);
+        saveData();
+      }
+
       nextId = activities.length ? Math.max(...activities.map(a => a.id)) + 1 : 1;
     } catch { activities = DEFAULT_ACTIVITIES.map(a => ({...a, subActivities: [...(a.subActivities || [])]})); }
   } else {
@@ -949,14 +968,18 @@ function getFiltered() {
   const q      = searchQuery.toLowerCase();
 
   return activities
-    .filter(a =>
-      (!status || a.status === status) &&
-      (!owner  || a.owner === owner || a.owner.includes(owner)) &&
-      (!type   || a.type === type) &&
-      (!init   || a.initiative === init) &&
-      (!month  || isActivityInMonth(a, month)) &&
-      (!q      || a.name.toLowerCase().includes(q) || (a.owner||'').toLowerCase().includes(q) || (a.initiative||'').toLowerCase().includes(q))
-    )
+    .filter(a => {
+      const ownerParts = (a.owner || '').split('/').map(p => p.trim().toLowerCase());
+      const matchesOwner = !owner || ownerParts.includes(owner.toLowerCase());
+      return (
+        (!status || a.status === status) &&
+        matchesOwner &&
+        (!type   || a.type === type) &&
+        (!init   || a.initiative === init) &&
+        (!month  || isActivityInMonth(a, month)) &&
+        (!q      || a.name.toLowerCase().includes(q) || (a.owner||'').toLowerCase().includes(q) || (a.initiative||'').toLowerCase().includes(q))
+      );
+    })
     .sort((a, b) => {
       let av = a[sortCol] ?? '', bv = b[sortCol] ?? '';
       if (sortCol === 'id') { av = a.id; bv = b.id; }
@@ -1578,7 +1601,7 @@ function saveActivity(e) {
 
   const data = {
     name:         document.getElementById('f-name').value.trim(),
-    owner:        selectedOwners.join('/'),
+    owner:        selectedOwners.slice().sort().join('/'),
     status:       document.getElementById('f-status').value || 'Not Started',
     startDate:    document.getElementById('f-start').value,
     startTime:    document.getElementById('f-start-time')?.value || '',
