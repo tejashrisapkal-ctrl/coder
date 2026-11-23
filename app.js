@@ -52,8 +52,8 @@ const DEFAULT_ACTIVITIES = [
   { id: 18, name: 'Priority Plays Session - Q2',            owner: 'Tejashri',       startDate: '2026-04-15', endDate: '2026-06-15', status: 'In Progress', type: 'Quarterly',     initiative: 'Priority Plays', notes: '', subActivities: [] },
   { id: 19, name: 'Silver/Gold Bench Program Refresh',      owner: 'Nikhil',         startDate: '2026-05-01', endDate: '2026-10-31', status: 'Not Started', type: '',              initiative: 'Silver/Gold - Project and Bench', notes: '', subActivities: [] },
   { id: 20, name: 'AI Hackathon Preparation',               owner: 'Deepraj',        startDate: '2026-06-01', endDate: '2026-07-31', status: 'Not Started', type: 'One-time',      initiative: 'AI Hackathon', notes: '', subActivities: [] },
-  { id: 21, name: 'First Time Manager Boot Camp Preparation', owner: 'Tejashri',     startDate: '2026-04-08', endDate: '2026-05-15', status: 'In Progress', type: 'Quarterly',     initiative: 'Leadership Training', notes: 'Connect Session with Nikita Kamath', subActivities: [] },
-  { id: 22, name: 'DRP Framework for Appraisals',              owner: 'Tanaya/Tejashri', startDate: '2026-11-01', endDate: '',           status: 'In Progress', type: '',              initiative: 'DRI/DRP/PNH',        notes: '', subActivities: [] },
+  { id: 22, name: 'First Time Manager Boot Camp Preparation', owner: 'Tejashri',     startDate: '2026-04-08', endDate: '2026-05-15', status: 'In Progress', type: 'Quarterly',     initiative: 'Leadership Training', notes: 'Connect Session with Nikita Kamath', subActivities: [] },
+  { id: 50, name: 'DRP Framework for Appraisals',              owner: 'Tanaya/Tejashri', startDate: '2026-11-01', endDate: '',           status: 'In Progress', type: '',              initiative: 'DRI/DRP/PNH',        notes: '', subActivities: [] },
 ];
 
 const TEAM_EMAILS = [
@@ -149,7 +149,7 @@ const GOOGLE_SHEET_URL = 'https://docs.google.com/spreadsheets/d/1B5cI9UpRKemHf7
 ────────────────────────────────────────── */
 
 let activities = [];
-let nextId = 23;
+let nextId = 51;
 let editingId = null;
 let sortCol = 'id';
 let sortDir = 1;
